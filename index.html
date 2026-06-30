@@ -3,382 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThinkPad Refurbishment Reference Explorer</title>
+    <title>ThinkPad Technician Console</title>
     <style>
         :root {
-            --bg-base: #121212;
-            --bg-surface: #1e1e1e;
-            --bg-panel: #2a2a2a;
-            --text-main: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --accent-red: #da291c;
-            --border-color: #333;
-            --diff-low: #4caf50;
-            --diff-med: #ff9800;
-            --diff-high: #f44336;
+            --bg-base: #0d1117;
+            --bg-surface: #161b22;
+            --bg-card: #21262d;
+            --border-muted: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --tp-red: #da291c;
+            --tp-red-hover: #ff473d;
+            --badge-green: #238636;
+            --badge-orange: #d29922;
+            --badge-red: #da3633;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-base); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-base); color: var(--text-main); line-height: 1.5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        /* Navbar */
+        header { background-color: var(--bg-surface); border-bottom: 1px solid var(--border-muted); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.2rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+        .logo span { color: var(--tp-red); }
         
-        header { background-color: var(--bg-surface); border-bottom: 2px solid var(--accent-red); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        h1 { font-size: 1.25rem; font-weight: 600; }
+        .controls { display: flex; gap: 1rem; align-items: center; }
+        .search-bar { background: var(--bg-base); border: 1px solid var(--border-muted); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; width: 250px; outline: none; transition: border 0.2s; }
+        .search-bar:focus { border-color: var(--tp-red); }
         
-        .series-filters button { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 0.5rem 1.5rem; margin-left: 0.5rem; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .series-filters button { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-muted); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; margin-left: 0.5rem; }
         .series-filters button:hover { color: var(--text-main); border-color: var(--text-muted); }
-        .series-filters button.active { background-color: var(--accent-red); color: #fff; border-color: var(--accent-red); }
+        .series-filters button.active { background-color: rgba(218, 41, 28, 0.1); color: var(--tp-red); border-color: var(--tp-red); }
 
+        /* Layout */
         main { display: flex; flex: 1; overflow: hidden; }
+        aside { width: 280px; background-color: var(--bg-surface); border-right: 1px solid var(--border-muted); overflow-y: auto; display: flex; flex-direction: column; }
         
-        aside { width: 260px; background-color: var(--bg-surface); border-right: 1px solid var(--border-color); overflow-y: auto; display: flex; flex-direction: column; }
-        .model-btn { background: transparent; color: var(--text-main); border: none; border-bottom: 1px solid var(--border-color); padding: 1rem; text-align: left; cursor: pointer; font-size: 1rem; transition: background 0.1s; }
-        .model-btn:hover { background-color: var(--bg-panel); }
-        .model-btn.active { background-color: var(--bg-panel); border-left: 4px solid var(--accent-red); font-weight: bold; }
+        .model-btn { background: transparent; color: var(--text-main); border: none; border-bottom: 1px solid var(--border-muted); padding: 1rem 1.5rem; text-align: left; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: background 0.1s; display: flex; justify-content: space-between; align-items: center; }
+        .model-btn:hover { background-color: var(--bg-card); }
+        .model-btn.active { background-color: var(--bg-card); border-left: 4px solid var(--tp-red); color: #fff; }
 
         .content-area { flex: 1; padding: 2rem; overflow-y: auto; background-color: var(--bg-base); }
-        .placeholder { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.2rem; }
         
-        .details-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; max-width: 900px; margin: 0 auto; }
-        .detail-card { background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 1.5rem; }
-        .detail-card h3 { color: var(--accent-red); margin-bottom: 1rem; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-        .model-title { font-size: 2rem; margin-bottom: 1.5rem; color: #fff; }
-
-        ul { list-style-type: none; }
-        li { margin-bottom: 0.75rem; padding-left: 1.25rem; position: relative; }
-        li::before { content: "▪"; color: var(--accent-red); position: absolute; left: 0; top: 0px; font-size: 1.2rem; }
+        /* Dashboard Cards */
+        .dashboard-header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--border-muted); padding-bottom: 1rem; }
+        .dashboard-header h2 { font-size: 2.5rem; color: #fff; letter-spacing: -1px; }
         
-        .quirk { background-color: rgba(218, 41, 28, 0.1); border-left: 3px solid var(--accent-red); padding: 0.75rem; margin-top: 1rem; border-radius: 0 4px 4px 0; }
-        .tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-left: 0.5rem; }
-        .tag-low { background-color: rgba(76, 175, 80, 0.2); color: var(--diff-low); border: 1px solid var(--diff-low); }
-        .tag-med { background-color: rgba(255, 152, 0, 0.2); color: var(--diff-med); border: 1px solid var(--diff-med); }
-        .tag-high { background-color: rgba(244, 67, 54, 0.2); color: var(--diff-high); border: 1px solid var(--diff-high); }
+        .badge-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .b-cpu { background: rgba(56, 139, 253, 0.1); color: #58a6ff; border: 1px solid rgba(56, 139, 253, 0.4); }
+        .b-ram { background: rgba(210, 153, 34, 0.1); color: #e3b341; border: 1px solid rgba(210, 153, 34, 0.4); }
+        .b-fw { background: rgba(35, 134, 54, 0.1); color: #3fb950; border: 1px solid rgba(35, 134, 54, 0.4); }
 
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; }
+        
+        .card { background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: #fff; font-size: 1.1rem; font-weight: 600; border-bottom: 1px solid var(--border-muted); padding-bottom: 0.5rem; }
+        .card-header svg { fill: var(--text-muted); width: 20px; height: 20px; }
+        
+        ul.tech-list { list-style: none; }
+        ul.tech-list li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; font-size: 0.95rem; color: var(--text-main); line-height: 1.4; }
+        ul.tech-list li::before { content: "›"; color: var(--tp-red); position: absolute; left: 0; font-size: 1.2rem; font-weight: bold; top: -2px; }
+        
+        .alert-box { background: rgba(218, 41, 28, 0.1); border-left: 4px solid var(--tp-red); padding: 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; font-size: 0.9rem; }
+        .alert-box strong { color: #fff; }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-base); }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-muted); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>ThinkPad Refurbisher API</h1>
-        <div class="series-filters">
-            <button id="btn-t" class="active" onclick="setSeries('T')">T-Series</button>
-            <button id="btn-x" onclick="setSeries('X')">X-Series</button>
-            <button id="btn-w" onclick="setSeries('W')">W-Series</button>
+        <div class="logo">ThinkPad<span>Refurb</span>DB</div>
+        <div class="controls">
+            <input type="text" id="search" class="search-bar" placeholder="Search models, parts, FRU..." onkeyup="handleSearch()">
+            <div class="series-filters">
+                <button id="btn-t" class="active" onclick="setSeries('T')">T-Series</button>
+                <button id="btn-x" onclick="setSeries('X')">X-Series</button>
+                <button id="btn-w" onclick="setSeries('W')">W/P-Series</button>
+            </div>
         </div>
     </header>
 
     <main>
         <aside id="model-list"></aside>
         <section class="content-area" id="detail-view">
-            <div class="placeholder">Select a model from the list to view specifications.</div>
+            <div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                Select a model or search to begin.
+            </div>
         </section>
     </main>
 
     <script>
-        const inventoryData = {
+        // Icons embedded as SVG strings to maintain zero-dependencies
+        const icons = {
+            hw: `<svg viewBox="0 0 24 24"><path d="M2 4h20v16H2V4zm2 2v12h16V6H4zm3 2h2v2H7V8zm0 4h2v2H7v-2zm4-4h6v2h-6V8zm0 4h6v2h-6v-2z"/></svg>`,
+            fw: `<svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zM19 9.21l-6 3.38v6.71l6-3.38v-6.7z"/></svg>`,
+            parts: `<svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>`,
+            os: `<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>`
+        };
+
+        const db = {
             "T": [
                 {
-                    id: "t580", name: "T580",
-                    specs: ["Intel 8th Gen Core (Quad-Core)", "15.6-inch FHD/UHD", "M.2 2242 or 2.5-inch SATA via adapter"],
-                    refurb: { slots: "2 Slots", maxRam: "64GB DDR4 (2x32GB)", quirk: "Full Numpad keyboard. CRITICAL: Update Intel Thunderbolt firmware immediately to prevent USB-C charging failure." },
-                    parts: ["External batteries share with T570, T480, P51s, P52s."],
-                    bios: [{ desc: "Whitelist removal requires hardware SPI programmer.", diff: "High" }]
-                },
-                {
-                    id: "t480", name: "T480",
-                    specs: ["Intel 8th Gen Core (Quad-Core)", "14.0-inch HD/FHD/WQHD", "M.2 2242 or 2.5-inch SATA via adapter"],
-                    refurb: { slots: "2 Slots", maxRam: "64GB DDR4 (2x32GB)", quirk: "Power Bridge system. CRITICAL: Update Intel Thunderbolt firmware to stop charging port lock-outs." },
+                    id: "t480", name: "T480", tags: ["14-inch", "Quad-Core", "DDR4"],
+                    specs: ["Intel 8th Gen Core (Quad-Core)", "14.0-inch HD/FHD/WQHD eDP", "Dual Drive: M.2 2242 + 2.5 SATA (via adapter FRU)"],
+                    refurb: "2 Slots (Max 64GB DDR4). Excellent margins for refurb. Retains the Power Bridge battery system (Internal + External hot-swap).",
                     parts: ["External batteries share with T470, T570, T580.", "Internal 2.5 caddies fit T470 native."],
-                    bios: [{ desc: "Whitelist removal requires SPI dump analysis.", diff: "High" }]
+                    firmware: ["Coreboot supported (requires hardware SPI flasher/clip to bypass BootGuard).", "Intel ME can be neutralized but not fully removed (requires FSP blobs).", "CRITICAL: Thunderbolt firmware bug destroys NVM chip if not updated immediately upon receiving."],
+                    os: ["Plex/Homelab Hero: Low idle power, easily handles multiple Docker containers 24/7.", "Flawless Linux Mint / Debian support out of the box."]
                 },
                 {
-                    id: "t570", name: "T570",
-                    specs: ["Intel 7th Gen Core", "15.6-inch FHD/UHD", "M.2 2280 NVMe or 2.5-inch SATA"],
-                    refurb: { slots: "2 Slots", maxRam: "32GB DDR4", quirk: "First 15-inch T-series with Thunderbolt 3." },
-                    parts: ["Shares structural external batteries with T580/P51s.", "Keyboards interchangeable with T580."],
-                    bios: [{ desc: "Hardware programmer required for BIOS unlocking.", diff: "High" }]
+                    id: "t480s", name: "T480s", tags: ["14-inch", "Slim", "NVMe"],
+                    specs: ["Intel 8th Gen Core (Quad-Core)", "14.0-inch FHD/WQHD eDP", "M.2 2280 NVMe PCIe 3.0 x4 natively"],
+                    refurb: "1 Slot + 4/8GB Soldered (Max 40GB DDR4). Single internal battery (no external bridge).",
+                    parts: ["Display panels and M.2 brackets share with standard T480.", "Keyboards and internal batteries DO NOT fit T480."],
+                    firmware: ["Coreboot support via hardware flashing.", "Requires the same urgent Thunderbolt firmware patch as the T480."],
+                    os: ["Excellent headless server node. Runs Ubuntu Server exceptionally well with low thermals."]
                 },
                 {
-                    id: "t470", name: "T470",
-                    specs: ["Intel 7th Gen Core", "14.0-inch HD/FHD", "M.2 2280 NVMe or 2.5-inch SATA"],
-                    refurb: { slots: "2 Slots", maxRam: "32GB DDR4", quirk: "Requires specific proprietary caddy/cable FRU to switch between 2.5-inch SATA and M.2 NVMe." },
-                    parts: ["Chassis heavily shares parts with T480.", "Uses same external 61/61+ batteries as T480."],
-                    bios: [{ desc: "Advanced menu unlocking via SPI dump.", diff: "High" }]
-                },
-                {
-                    id: "t560", name: "T560",
-                    specs: ["Intel 6th Gen Core", "15.6-inch HD/FHD/3K", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "32GB DDR3L", quirk: "Uses DDR3L despite being a 6th-gen platform." },
-                    parts: ["Keyboards match T550, W550s."],
-                    bios: [{ desc: "SPI dump required for whitelist removals.", diff: "High" }]
-                },
-                {
-                    id: "t460", name: "T460",
-                    specs: ["Intel 6th Gen Core", "14.0-inch HD/FHD", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "32GB DDR3L", quirk: "Unlike T460s (which uses DDR4), standard T460 remains on DDR3L architecture." },
-                    parts: ["External batteries match T450, X250, X260 (68/68+ series)."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
-                },
-                {
-                    id: "t550", name: "T550",
-                    specs: ["Intel 5th Gen Core", "15.6-inch HD/FHD/3K", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3L", quirk: "Brought back dedicated physical trackpoint buttons after the T540p clunkpad era." },
-                    parts: ["Keyboards share with T540p, W540, W550s."],
-                    bios: [{ desc: "Hardware programming required.", diff: "High" }]
-                },
-                {
-                    id: "t450", name: "T450",
-                    specs: ["Intel 5th Gen Core", "14.0-inch HD/FHD+", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3L", quirk: "Physical trackpoint buttons are highly sought after to harvest and retrofit into T440/T440p units." },
-                    parts: ["Trackpad assembly is a direct, natively supported swap for T440/T440p."],
-                    bios: [{ desc: "Hardware SPI clip required.", diff: "High" }]
-                },
-                {
-                    id: "t540p", name: "T540p",
-                    specs: ["Intel 4th Gen Core (M/MQ Socketed)", "15.6-inch HD/FHD/3K", "2.5-inch SATA III + M.2 2242"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3L", quirk: "CPU IS FULLY SOCKETED. Can be highly profitably upgraded to i7-4xxxMQ quad-core processors. Factory trackpad lacks physical buttons (Clunkpad)." },
-                    parts: ["Can natively accept T550 trackpads to restore physical buttons.", "Optical bay accepts standard 9.5mm caddy."],
-                    bios: [{ desc: "Hardware flash required for whitelist removal.", diff: "High" }]
-                },
-                {
-                    id: "t440p", name: "T440p",
+                    id: "t440p", name: "T440p", tags: ["14-inch", "Socketed", "DDR3L"],
                     specs: ["Intel 4th Gen Core (M/MQ Socketed)", "14.0-inch HD/HD+/FHD", "2.5-inch SATA III + M.2 2242"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3L", quirk: "Refurbisher Goldmine: Socketed CPU, easy 1080p IPS panel swaps, and dual-drive capable. Factory clunkpad requires replacing." },
-                    parts: ["Accepts T450 trackpad assemblies.", "Optical bay takes 9.5mm caddy."],
-                    bios: [{ desc: "Coreboot supported but requires initial hardware flash.", diff: "Med" }]
+                    refurb: "2 Slots (Max 16GB DDR3L). Refurbisher goldmine: CPU is fully socketed allowing highly profitable i7 Quad-Core upgrades.",
+                    parts: ["Trackpad assembly native swap with T450 (removes the clunkpad).", "Optical bay accepts standard 9.5mm caddy."],
+                    firmware: ["Coreboot fully supported.", "Hardware flash required for Wi-Fi whitelist removal."],
+                    os: ["Very strong Linux daily driver. Thermals require good paste (e.g., PTM7950) if upgraded to 4700MQ."]
                 },
                 {
-                    id: "t440", name: "T440",
-                    specs: ["Intel 4th Gen Core (ULV)", "14.0-inch HD/HD+", "2.5-inch SATA III"],
-                    refurb: { slots: "1 Slot + 4GB Soldered", maxRam: "12GB DDR3L", quirk: "Unlike the T440p, the T440 uses soldered ULV processors and has severely limited RAM expansion." },
-                    parts: ["Shares clunkpad with T440p (can be swapped for T450 pad)."],
-                    bios: [{ desc: "Hardware flasher required.", diff: "High" }]
-                },
-                {
-                    id: "t530", name: "T530",
-                    specs: ["Intel 3rd Gen Core (M/MQ Socketed)", "15.6-inch HD/HD+/FHD", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3/DDR3L", quirk: "Socketed CPU. Can handle 45W quad-core i7 upgrades easily with 90W PSU." },
-                    parts: ["Chiclet keyboard identical to T430, W530, X230."],
-                    bios: [{ desc: "1vyrain exploit unlocks advanced settings.", diff: "Low" }, { desc: "EC flash required for 7-row classic keyboard.", diff: "Med" }]
-                },
-                {
-                    id: "t430", name: "T430",
-                    specs: ["Intel 3rd Gen Core (M Socketed)", "14.0-inch HD/HD+", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3/DDR3L", quirk: "Socketed CPU allows quad-core mods, though thermal limits require careful pasting." },
-                    parts: ["Keyboards swap natively with T530, W530, X230."],
-                    bios: [{ desc: "1vyrain exploit unlocks advanced settings.", diff: "Low" }, { desc: "7-row keyboard mod via EC flash.", diff: "Med" }]
-                },
-                {
-                    id: "t520", name: "T520",
-                    specs: ["Intel 2nd Gen Core (M/MQ Socketed)", "15.6-inch HD/HD+/FHD", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3 (1333MHz)", quirk: "Last 15-inch model with the classic 7-row keyboard natively installed." },
-                    parts: ["Keyboard shares with T420, W520, X220."],
-                    bios: [{ desc: "Soft-flash custom BIOS lifts whitelists.", diff: "Low" }]
-                },
-                {
-                    id: "t420", name: "T420",
-                    specs: ["Intel 2nd Gen Core (M Socketed)", "14.0-inch HD/HD+", "2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3", quirk: "Coreboot unlocks advanced RAM tables." },
-                    parts: ["Classic 7-row keyboard swaps with T520, W520, X220."],
-                    bios: [{ desc: "Software-flashed custom BIOS.", diff: "Low" }]
-                },
-                {
-                    id: "t510", name: "T510",
-                    specs: ["Intel 1st Gen Core (Nehalem)", "15.6-inch 16:9 Display", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "CRITICAL: Chipset demands low-density 2Rx8 RAM modules. High-density 1Rx8 modules will cause boot loops." },
-                    parts: ["Keyboard shares with T410, W510."],
-                    bios: [{ desc: "Hardware flash required.", diff: "High" }]
-                },
-                {
-                    id: "t410", name: "T410",
-                    specs: ["Intel 1st Gen Core (Nehalem)", "14.1-inch 16:10 Display", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "CRITICAL: Requires low-density 2Rx8 DDR3 RAM. T410 retains the 16:10 aspect ratio unlike the 16:9 T510." },
-                    parts: ["Shares batteries with T420 (Series 70/70+)."],
-                    bios: [{ desc: "Hardware flash required.", diff: "High" }]
-                },
-                {
-                    id: "t500", name: "T500",
-                    specs: ["Intel Core 2 Duo", "15.4-inch Widescreen", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "Requires low-density DDR3 modules (2Rx8 configurations)." },
-                    parts: ["Shares keyboards and hinges with R500."],
-                    bios: [{ desc: "Libreboot compatible via physical chip rewrite.", diff: "High" }]
-                },
-                {
-                    id: "t400", name: "T400",
-                    specs: ["Intel Core 2 Duo", "14.1-inch Widescreen", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "Requires low-density DDR3 modules (2Rx8 configurations)." },
-                    parts: ["Shares parts with widescreen R400 models."],
-                    bios: [{ desc: "Libreboot compatible via physical chip rewrite.", diff: "High" }]
-                }
-            ],
-            "W": [
-                {
-                    id: "w510", name: "W510",
-                    specs: ["Intel 1st Gen Core i7 (Quad-Core)", "15.6-inch FHD RGBLED options", "Nvidia Quadro FX 880M"],
-                    refurb: { slots: "4 Slots", maxRam: "32GB DDR3 (4x8GB)", quirk: "Requires minimum 135W barrel-plug AC adapter to run at full clock speeds. Dual-core models only have 2 active RAM slots." },
-                    parts: ["Chassis and keyboard heavily shared with T510."],
-                    bios: [{ desc: "Hardware programmer required for whitelist removals.", diff: "High" }]
-                },
-                {
-                    id: "w500", name: "W500",
-                    specs: ["Intel Core 2 Duo", "15.4-inch WUXGA options", "ATI Mobility FireGL V5700"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "Demands strict low-density (2Rx8) memory sticks. Notorious for switchable graphics driver issues on modern OSes." },
-                    parts: ["Heavily shares chassis, keyboard, and display assemblies with T500."],
-                    bios: [{ desc: "Libreboot compatible via physical chip rewrite.", diff: "High" }]
+                    id: "t430", name: "T430", tags: ["14-inch", "Socketed", "Ivy Bridge"],
+                    specs: ["Intel 3rd Gen Core (M Socketed)", "14.0-inch HD/HD+", "2.5-inch SATA III + mSATA"],
+                    refurb: "2 Slots (Max 16GB DDR3/DDR3L). Handles both 1.5V and 1.35V RAM. Socketed CPU allows quad-core mods (beware thermal limits).",
+                    parts: ["Keyboards swap natively with T530, W530, X230.", "Accepts 90W/65W round barrel AC adapters."],
+                    firmware: ["1vyrain software exploit unlocks advanced BIOS settings easily.", "Coreboot/Skulls supported.", "EC firmware flash required to map classic 7-row keyboard mod."],
+                    os: ["Rock solid under AntiX or Debian for lightweight duties."]
                 }
             ],
             "X": [
                 {
-                    id: "x280", name: "X280",
+                    id: "x280", name: "X280", tags: ["12.5-inch", "Soldered", "NVMe"],
                     specs: ["Intel 8th Gen Core", "12.5-inch FHD IPS", "M.2 2280 NVMe"],
-                    refurb: { slots: "0 Slots (Soldered)", maxRam: "8GB or 16GB (Fixed)", quirk: "Complete redesign. No RAM slots. No Power Bridge system. Requires proprietary dongle for native RJ45 ethernet." },
-                    parts: ["Shares almost no mechanical parts with X270 or prior."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
+                    refurb: "0 Slots. ALL RAM IS SOLDERED (8GB or 16GB fixed). Verify RAM before purchasing job lots. No Power Bridge.",
+                    parts: ["Shares almost no mechanical parts with X270 or prior.", "Requires proprietary dongle for RJ45."],
+                    firmware: ["Locked down. Advanced mods require direct SPI hardware flash.", "Thunderbolt update mandatory."],
+                    os: ["Great portable Linux terminal machine, provided it has 16GB RAM."]
                 },
                 {
-                    id: "x270", name: "X270",
-                    specs: ["Intel 7th Gen Core", "12.5-inch FHD IPS", "2.5-inch SATA or M.2 NVMe (via caddy)"],
-                    refurb: { slots: "1 Slot", maxRam: "16GB DDR4", quirk: "Last X-series to feature the Power Bridge dual-battery system and standard 2.5-inch bay form factor." },
-                    parts: ["Shares Power Bridge batteries (68/68+) with X240-X260."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
+                    id: "x240", name: "X240", tags: ["12.5-inch", "Clunkpad", "DDR3L"],
+                    specs: ["Intel 4th Gen Core", "12.5-inch HD/FHD eDP", "Single 2.5-inch internal bay"],
+                    refurb: "1 Slot (Max 8GB DDR3L). Must use 1.35V RAM. CRITICAL FAULT: Uses a unique CR1632 CMOS battery coin cell, standard CR2032 will not fit.",
+                    parts: ["Power bridge batteries match X250, X260, X270.", "Trackpad can (and should) be upgraded to X250 module."],
+                    firmware: ["Advanced configurations require hardware programmer chip dump."],
+                    os: ["Good lightweight Mint machine, but 8GB RAM ceiling limits virtualization."]
                 },
                 {
-                    id: "x260", name: "X260",
-                    specs: ["Intel 6th Gen Core", "12.5-inch FHD IPS", "2.5-inch SATA III"],
-                    refurb: { slots: "1 Slot", maxRam: "16GB DDR4", quirk: "Transitioned to DDR4 memory from the X250's DDR3L." },
-                    parts: ["Keyboards and batteries identical to X250."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
+                    id: "x230t", name: "X230T (Tablet)", tags: ["12.5-inch", "Convertible", "Digitizer"],
+                    specs: ["Intel 3rd Gen Core", "12.5-inch IPS Touch/Digitizer", "7mm 2.5-inch SATA III"],
+                    refurb: "2 Slots (Max 16GB). Distinct convertible framework. Watch for broken center hinge swivels on auction units.",
+                    parts: ["Shares chiclet keyboard with T430/X230.", "WARNING: Screens, hinges, and digitizers DO NOT fit standard X230."],
+                    firmware: ["1vyrain software deployment frees Wi-Fi restrictions.", "EC modification allows 3rd party battery charging."],
+                    os: ["Wacom digitizer works out-of-the-box on most modern Linux kernels (Mint/Ubuntu)."]
                 },
                 {
-                    id: "x250", name: "X250",
-                    specs: ["Intel 5th Gen Core", "12.5-inch HD/FHD", "2.5-inch SATA III"],
-                    refurb: { slots: "1 Slot", maxRam: "16GB DDR3L", quirk: "Restored physical TrackPoint buttons. Highly desirable donor machine for X240 clunkpad replacements." },
-                    parts: ["Trackpad assembly drops straight into X240 frameworks."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
-                },
-                {
-                    id: "x240", name: "X240",
-                    specs: ["Intel 4th Gen Core", "12.5-inch HD/FHD eDP", "Single internal storage bay"],
-                    refurb: { slots: "1 Slot", maxRam: "8GB DDR3L", quirk: "REQUIRES unique CR1632 CMOS battery (not standard CR2032). Standard trackpad lacks physical trackpoint keys." },
-                    parts: ["Trackpads can be upgraded to physical-button X250 modules."],
-                    bios: [{ desc: "Hardware SPI flash required.", diff: "High" }]
-                },
-                {
-                    id: "x230", name: "X230",
-                    specs: ["Intel 3rd Gen Core", "12.5-inch IPS/TN", "7mm 2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3/DDR3L", quirk: "Accepts 1.5V and 1.35V RAM. Highly moddable." },
-                    parts: ["Shares chiclet keyboards with T430, T530, W530."],
-                    bios: [{ desc: "1vyrain software deployment frees Wi-Fi restrictions.", diff: "Low" }, { desc: "EC modification allows classic 7-row mapping.", diff: "Med" }]
-                },
-                {
-                    id: "x220", name: "X220",
-                    specs: ["Intel 2nd Gen Core", "12.5-inch IPS/TN", "7mm 2.5-inch SATA III"],
-                    refurb: { slots: "2 Slots", maxRam: "16GB DDR3", quirk: "Last native classic 7-row keyboard 12.5-inch model." },
-                    parts: ["Keyboards swap natively into T420, T520, W520."],
-                    bios: [{ desc: "Hardware flashing or legacy soft-mods unlock high-speed RAM.", diff: "Med" }]
-                },
-                {
-                    id: "x201", name: "X201",
-                    specs: ["Intel 1st Gen Core", "12.1-inch 16:10 Widescreen", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "CRITICAL: Chipset demands strict low-density (2Rx8) memory sticks. Runs significantly hotter than the X200." },
-                    parts: ["Keyboards and chassis plastics match X200."],
-                    bios: [{ desc: "Hardware SPI flash required. NO Libreboot support (unlike X200).", diff: "High" }]
-                },
-                {
-                    id: "x200", name: "X200",
+                    id: "x200", name: "X200", tags: ["12.1-inch", "16:10", "Libreboot"],
                     specs: ["Intel Core 2 Duo", "12.1-inch 16:10 Widescreen", "2.5-inch SATA II"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR3", quirk: "Requires low-density (2Rx8) memory sticks." },
+                    refurb: "2 Slots (Max 8GB DDR3). CRITICAL FAULT: Demands strict low-density (2Rx8) memory sticks. High-density RAM will fail post.",
                     parts: ["Keyboards match X201 and X201s."],
-                    bios: [{ desc: "Libreboot compatible via hardware SOIC-8 clip replacement.", diff: "High" }]
-                },
+                    firmware: ["The absolute gold standard for Libreboot.", "Requires hardware SOIC-8 clip and Raspberry Pi Pico / CH341a for initial flash."],
+                    os: ["Perfect for fully free/open-source GNU/Linux distributions. Avoid heavy web browsing."]
+                }
+            ],
+            "W": [
                 {
-                    id: "x61", name: "X61 / X61s",
-                    specs: ["Intel Core 2 Duo", "12.1-inch 4:3 Aspect", "SATA II (via Mod)"],
-                    refurb: { slots: "2 Slots", maxRam: "8GB DDR2", quirk: "X61s utilizes a low-voltage CPU and a specialized lighter heatsink. Maxing out 8GB DDR2 is extremely expensive due to 4GB SODIMM rarity." },
-                    parts: ["Keyboards swap with X60 series."],
-                    bios: [{ desc: "Middleton BIOS software update unlocks SATA II link speeds natively.", diff: "Low" }]
-                },
-                {
-                    id: "x60", name: "X60",
-                    specs: ["Intel Core Duo / Core 2 Duo", "12.1-inch 4:3 Aspect", "SATA I Factory Limit"],
-                    refurb: { slots: "2 Slots", maxRam: "4GB Physical / 3GB Usable", quirk: "Chipset limits total usable memory to 3GB architecturally regardless of OS." },
-                    parts: ["Screens share with X61 variants of identical size."],
-                    bios: [{ desc: "Full Libreboot compatibility achieved via physical flash interface.", diff: "High" }]
+                    id: "w510", name: "W510", tags: ["15.6-inch", "Workstation", "Quad-Core"],
+                    specs: ["Intel 1st Gen Core i7 (Quad-Core)", "15.6-inch FHD RGBLED options", "Nvidia Quadro FX 880M"],
+                    refurb: "4 Slots (Max 32GB DDR3). Quad-core models unlock all 4 slots. Requires 135W minimum AC adapter to boost.",
+                    parts: ["Chassis and keyboard heavily shared with T510."],
+                    firmware: ["Hardware programmer required for whitelist removals."],
+                    os: ["Legacy Nvidia drivers can be problematic on modern Linux. Nouveau drivers recommended for 2D tasks."]
                 }
             ]
         };
 
         let currentSeries = 'T';
-        let currentModel = null;
+        let allModels = [];
+        
+        // Flatten DB for search
+        Object.keys(db).forEach(key => {
+            db[key].forEach(model => allModels.push({...model, series: key}));
+        });
 
         function setSeries(series) {
             currentSeries = series;
-            currentModel = null;
-            
-            document.getElementById('btn-t').classList.toggle('active', series === 'T');
-            document.getElementById('btn-x').classList.toggle('active', series === 'X');
-            document.getElementById('btn-w').classList.toggle('active', series === 'W');
-            
-            renderList();
-            document.getElementById('detail-view').innerHTML = '<div class="placeholder">Select a model from the list to view specifications.</div>';
+            document.getElementById('search').value = '';
+            document.querySelectorAll('.series-filters button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${series.toLowerCase()}`).classList.add('active');
+            renderList(db[series]);
         }
 
-        function getDiffTag(diff) {
-            const classMap = { 'Low': 'tag-low', 'Med': 'tag-med', 'High': 'tag-high' };
-            return `<span class="tag ${classMap[diff]}">${diff}</span>`;
+        function handleSearch() {
+            const query = document.getElementById('search').value.toLowerCase();
+            if (!query) return setSeries(currentSeries);
+            
+            document.querySelectorAll('.series-filters button').forEach(b => b.classList.remove('active'));
+            const results = allModels.filter(m => 
+                m.name.toLowerCase().includes(query) || 
+                m.parts.join(' ').toLowerCase().includes(query) ||
+                m.refurb.toLowerCase().includes(query)
+            );
+            renderList(results);
         }
 
-        function renderDetails(modelId) {
-            const model = inventoryData[currentSeries].find(m => m.id === modelId);
-            currentModel = modelId;
-            renderList();
+        function renderList(models) {
+            const list = document.getElementById('model-list');
+            list.innerHTML = '';
+            models.forEach(model => {
+                const btn = document.createElement('button');
+                btn.className = 'model-btn';
+                btn.innerHTML = `${model.name} <span style="color: var(--text-muted); font-size: 0.8rem;">${model.tags[0]}</span>`;
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderDetails(model);
+                };
+                list.appendChild(btn);
+            });
+        }
 
+        function renderDetails(model) {
             const html = `
-                <h2 class="model-title">${model.name}</h2>
-                <div class="details-grid">
-                    <div class="detail-card">
-                        <h3>Core Architecture</h3>
-                        <ul>${model.specs.map(s => `<li>${s}</li>`).join('')}</ul>
+                <div class="dashboard-header">
+                    <div>
+                        <h2>${model.name}</h2>
+                        <div class="badge-group">
+                            <span class="badge b-cpu">${model.tags[1]}</span>
+                            <span class="badge b-ram">${model.tags[2]}</span>
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <h3>Refurbishment Metrics</h3>
-                        <ul>
-                            <li><strong>RAM Slots:</strong> ${model.refurb.slots}</li>
-                            <li><strong>Max Capacity:</strong> ${model.refurb.maxRam}</li>
+                </div>
+
+                <div class="grid-container">
+                    
+                    <div class="card">
+                        <div class="card-header">${icons.hw} Core Specs & Refurb Margins</div>
+                        <ul class="tech-list">
+                            ${model.specs.map(s => `<li>${s}</li>`).join('')}
                         </ul>
-                        ${model.refurb.quirk ? `<div class="quirk"><strong>Technician Note:</strong> ${model.refurb.quirk}</div>` : ''}
+                        <div class="alert-box">
+                            <strong>Technician Note:</strong> ${model.refurb}
+                        </div>
                     </div>
-                    <div class="detail-card">
-                        <h3>Strict Hardware Sharing</h3>
-                        <ul>${model.parts.map(p => `<li>${p}</li>`).join('')}</ul>
+
+                    <div class="card">
+                        <div class="card-header">${icons.parts} Hardware & FRU Interchange</div>
+                        <ul class="tech-list">
+                            ${model.parts.map(p => `<li>${p}</li>`).join('')}
+                        </ul>
                     </div>
-                    <div class="detail-card">
-                        <h3>Firmware / BIOS Operations</h3>
-                        <ul>${model.bios.map(b => `<li>${b.desc} ${getDiffTag(b.diff)}</li>`).join('')}</ul>
+
+                    <div class="card">
+                        <div class="card-header">${icons.fw} Firmware & BIOS Operations</div>
+                        <ul class="tech-list">
+                            ${model.firmware.map(f => `<li>${f}</li>`).join('')}
+                        </ul>
                     </div>
+
+                    <div class="card">
+                        <div class="card-header">${icons.os} OS & Homelab Viability</div>
+                        <ul class="tech-list">
+                            ${model.os.map(o => `<li>${o}</li>`).join('')}
+                        </ul>
+                    </div>
+
                 </div>
             `;
             document.getElementById('detail-view').innerHTML = html;
         }
 
-        function renderList() {
-            const list = document.getElementById('model-list');
-            list.innerHTML = '';
-            
-            inventoryData[currentSeries].forEach(model => {
-                const btn = document.createElement('button');
-                btn.className = `model-btn ${currentModel === model.id ? 'active' : ''}`;
-                btn.textContent = model.name;
-                btn.onclick = () => renderDetails(model.id);
-                list.appendChild(btn);
-            });
-        }
-
-        renderList();
+        // Init
+        setSeries('T');
     </script>
 </body>
 </html>
