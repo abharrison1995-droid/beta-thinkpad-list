@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="color-scheme" content="dark">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TP RefurbDB">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <title>ThinkPad Technician Console</title>
+    <style>
+        :root {
+            --bg-base: #0d1117;
+            --bg-surface: #161b22;
+            --bg-card: #21262d;
+            --border-muted: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --tp-red: #da291c;
+            --tp-red-hover: #ff473d;
+            --badge-blue: rgba(56, 139, 253, 0.15);
+            --badge-blue-text: #58a6ff;
+            --badge-orange: rgba(210, 153, 34, 0.15);
+            --badge-orange-text: #e3b341;
+            --badge-green: rgba(63, 185, 80, 0.15);
+            --badge-green-text: #3fb950;
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        html { height: 100%; }
+        body {
+            background-color: var(--bg-base); color: var(--text-main);
+            height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+            overscroll-behavior: none;
+        }
+        button { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+
+        /* ============ HEADER ============ */
+        header {
+            background-color: var(--bg-surface); border-bottom: 1px solid var(--border-muted);
+            padding: calc(0.75rem + var(--sat)) calc(1rem + var(--sar)) 0.75rem calc(1rem + var(--sal));
+            display: flex; flex-direction: column; gap: 0.65rem; flex-shrink: 0;
+        }
+        .header-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+        .logo { font-size: 1.1rem; font-weight: 700; color: #fff; white-space: nowrap; }
+        .logo span { color: var(--tp-red); }
+
+        .series-filters { display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; }
+        .series-filters::-webkit-scrollbar { display: none; }
+        .series-filters button {
+            background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-muted);
+            padding: 0.45rem 0.85rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+            transition: all 0.15s; white-space: nowrap; flex-shrink: 0;
+        }
+        .series-filters button:hover { color: var(--text-main); border-color: var(--text-muted); }
+        .series-filters button.active { background-color: rgba(218, 41, 28, 0.1); color: var(--tp-red); border-color: var(--tp-red); }
+
+        .search-bar {
+            background: var(--bg-base); border: 1px solid var(--border-muted); color: var(--text-main);
+            padding: 0.6rem 1rem; border-radius: 8px; width: 100%; outline: none; transition: border 0.2s;
+            font-size: 16px; /* prevents iOS auto-zoom on focus */
+            -webkit-appearance: none; appearance: none;
+        }
+        .search-bar:focus { border-color: var(--tp-red); }
+        .search-bar::placeholder { color: var(--text-muted); }
+
+        /* ============ LAYOUT ============ */
+        main { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        aside {
+            width: 290px; background-color: var(--bg-surface); border-right: 1px solid var(--border-muted);
+            overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; flex-shrink: 0;
+            padding-bottom: var(--sab); padding-left: var(--sal);
+        }
+
+        .list-meta {
+            padding: 0.6rem 1.25rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--text-muted); border-bottom: 1px solid var(--border-muted); background: var(--bg-base);
+            position: sticky; top: 0; z-index: 2;
+        }
+
+        .model-btn {
+            background: transparent; color: var(--text-main); border: none; border-bottom: 1px solid var(--border-muted);
+            padding: 1rem 1.25rem; text-align: left; cursor: pointer; font-size: 0.95rem; font-weight: 500;
+            transition: background 0.1s; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+            min-height: 52px; /* comfortable touch target */
+        }
+        .model-btn:active { background-color: var(--bg-card); }
+        .model-btn:hover { background-color: var(--bg-card); }
+        .model-btn.active { background-color: var(--bg-card); border-left: 4px solid var(--tp-red); color: #fff; font-weight: bold; }
+        .model-btn .sub { color: var(--text-muted); font-size: 0.78rem; font-weight: 500; white-space: nowrap; }
+        .model-btn .chev { display: none; color: var(--text-muted); font-size: 1.2rem; }
+
+        .content-area {
+            flex: 1; padding: 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            background-color: var(--bg-base);
+            padding-bottom: calc(1.5rem + var(--sab)); padding-right: calc(1.5rem + var(--sar));
+        }
+
+        .empty-state { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; padding: 1rem; }
+
+        /* Mobile back bar — hidden on desktop */
+        .mobile-bar { display: none; }
+
+        /* ============ DETAIL ============ */
+        .dashboard-header { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-muted); padding-bottom: 1rem; }
+        .dashboard-header h2 { font-size: 2.1rem; color: #fff; letter-spacing: -1px; }
+
+        .badge-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .b-cpu { background: var(--badge-blue); color: var(--badge-blue-text); border: 1px solid rgba(56, 139, 253, 0.4); }
+        .b-ram { background: var(--badge-orange); color: var(--badge-orange-text); border: 1px solid rgba(210, 153, 34, 0.4); }
+        .b-tier { background: var(--badge-green); color: var(--badge-green-text); border: 1px solid rgba(63, 185, 80, 0.4); }
+
+        /* Stat strip: Max RAM / Libreboot / Modularity */
+        .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .stat { background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 8px; padding: 0.65rem 0.9rem; }
+        .stat .stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
+        .stat .stat-val { font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 3px; line-height: 1.3; }
+        .stat .stat-note { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+        .lb-classic .stat-val { color: var(--badge-green-text); }
+        .lb-modern .stat-val { color: var(--badge-blue-text); }
+        .lb-none .stat-val { color: var(--text-muted); }
+        .mod-bar { display: flex; gap: 3px; margin-top: 7px; }
+        .mod-seg { height: 7px; flex: 1; border-radius: 2px; background: var(--border-muted); }
+        .mod-seg.on { background: var(--tp-red); }
+        .mod-hi .mod-seg.on { background: var(--badge-green-text); }
+
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 1.25rem; }
+
+        .card {
+            background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 10px;
+            padding: 1.25rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .card-content { flex-grow: 1; }
+        .card-header {
+            display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: #fff;
+            font-size: 1.05rem; font-weight: 600; border-bottom: 1px solid var(--border-muted); padding-bottom: 0.5rem;
+        }
+        .card-header svg { fill: var(--text-muted); width: 20px; height: 20px; flex-shrink: 0; }
+
+        ul.tech-list { list-style: none; }
+        ul.tech-list li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; font-size: 0.92rem; color: var(--text-main); line-height: 1.45; }
+        ul.tech-list li::before { content: "\203A"; color: var(--tp-red); position: absolute; left: 0; font-size: 1.2rem; font-weight: bold; top: -2px; }
+        ul.fault-list li::before { content: "\26A0"; font-size: 0.85rem; top: 1px; color: var(--badge-orange-text); }
+
+        .alert-box {
+            background: rgba(218, 41, 28, 0.08); border: 1px solid rgba(218, 41, 28, 0.15); border-left: 4px solid var(--tp-red);
+            padding: 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; font-size: 0.88rem; line-height: 1.5;
+        }
+        .alert-box strong { color: #fff; }
+        .value-box {
+            background: rgba(63, 185, 80, 0.06); border: 1px solid rgba(63, 185, 80, 0.15); border-left: 4px solid var(--badge-green-text);
+            padding: 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; font-size: 0.88rem; line-height: 1.5;
+        }
+        .value-box strong { color: #fff; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--border-muted); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ============ DESKTOP (>= 900px) ============ */
+        @media (min-width: 900px) {
+            header { flex-direction: row; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; }
+            .header-row { flex: 1; justify-content: flex-end; }
+            .logo { font-size: 1.2rem; }
+            .search-bar { width: 300px; }
+            .content-area { padding: 2rem; }
+            .dashboard-header h2 { font-size: 2.3rem; }
+        }
+
+        /* ============ MOBILE (< 900px): two-view navigation ============ */
+        @media (max-width: 899px) {
+            aside { width: 100%; border-right: none; }
+            .model-btn { padding: 1rem 1.25rem; }
+            .model-btn .chev { display: block; }
+
+            .content-area {
+                position: absolute; inset: 0; z-index: 5;
+                transform: translateX(100%);
+                transition: transform 0.22s ease;
+                padding: 1rem; padding-bottom: calc(1.5rem + var(--sab));
+                will-change: transform;
+                visibility: hidden;
+            }
+            body.detail-open .content-area { transform: translateX(0); visibility: visible; }
+
+            .mobile-bar {
+                display: flex; align-items: center; gap: 0.5rem;
+                position: sticky; top: -1rem; margin: -1rem -1rem 1rem -1rem;
+                padding: 0.6rem 1rem;
+                background: rgba(13, 17, 23, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+                border-bottom: 1px solid var(--border-muted); z-index: 10;
+            }
+            .back-btn {
+                background: var(--bg-card); border: 1px solid var(--border-muted); color: var(--text-main);
+                padding: 0.5rem 0.9rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+                display: flex; align-items: center; gap: 0.35rem; min-height: 40px;
+            }
+            .back-btn:active { background: var(--border-muted); }
+            .mobile-bar .bar-title { font-weight: 700; color: #fff; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+            .dashboard-header { margin-bottom: 1.25rem; }
+            .dashboard-header h2 { font-size: 1.7rem; }
+            .card { padding: 1.1rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .content-area { transition: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-row">
+            <div class="logo">ThinkPad<span>Refurb</span>DB</div>
+            <div class="series-filters">
+                <button id="btn-t" class="active" onclick="setSeries('T')">T-Series</button>
+                <button id="btn-x" onclick="setSeries('X')">X-Series</button>
+                <button id="btn-w" onclick="setSeries('W')">W/P-Series</button>
+            </div>
+        </div>
+        <input type="text" id="search" class="search-bar" placeholder="Search models, parts, faults (e.g., 2Rx8, coreboot)..."
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               onkeyup="handleSearch()" oninput="handleSearch()">
+    </header>
+
+    <main>
+        <aside id="model-list"></aside>
+        <section class="content-area" id="detail-view">
+            <div class="empty-state">Select a model or use search parameters to initiate hardware breakdown.</div>
+        </section>
+    </main>
+
+    <script>
+        const icons = {
+            hw: `<svg viewBox="0 0 24 24"><path d="M2 4h20v16H2V4zm2 2v12h16V6H4zm3 2h2v2H7V8zm0 4h2v2H7v-2zm4-4h6v2h-6V8zm0 4h6v2h-6v-2z"/></svg>`,
+            fw: `<svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.38v-6.71L5 9.21v6.7zM19 9.21l-6 3.38v6.71l6-3.38v-6.7z"/></svg>`,
+            parts: `<svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>`,
+            os: `<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>`,
+            fault: `<svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>`,
+            display: `<svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>`
+        };
+
+        const db = {
+        "T": [
+                {
+                        "id": "t580",
+                        "name": "T580",
+                        "tags": [
+                                "15.6-inch",
+                                "Quad-Core",
+                                "DDR4",
+                                "Tier A"
+                        ],
+                        "specs": [
+                                "Intel 8th Gen Core (i5-8250U / i5-8350U / i7-8550U / i7-8650U, quad-core ULV)",
+                                "Optional Nvidia MX150 2GB dGPU (usually paired with UHD panel SKUs)",
+                                "15.6-inch HD TN / FHD IPS (touch and non-touch) / UHD IPS options",
+                                "2.5-inch SATA bay; M.2 2280 NVMe via adapter tray FRU; M.2 2242 possible in WWAN slot",
+                                "Ports: 2x USB-C (one Thunderbolt 3), 2x USB-A 3.0, HDMI 1.4b, native RJ45, microSD"
+                        ],
+                        "refurb": "2 SODIMM slots, official max 32GB DDR4-2400 (2x32GB = 64GB works fine on 8th gen). Last 15-inch mainstream T with external Power Bridge. Numpad chassis appeals to accountancy/office buyers. Check for MX150 vs iGPU — dGPU units command a premium but run hotter.",
+                        "value": "Tier A stock. FHD IPS + i5-8250U + 16GB is the sweet-spot listing. UHD/MX150 units niche but high margin if battery health holds.",
+                        "parts": [
+                                "External Power Bridge batteries (61 / 61+ / 61++, 24/48/72Wh) interchange with T570, T480, P51s, P52s.",
+                                "Internal 32Wh battery FRU shared with T570.",
+                                "Keyboards interchange with T570 only (numpad layout — NOT T480).",
+                                "Bottom cover, speakers, and fan assemblies are T580-specific; do not cross with T570 without checking FRU."
+                        ],
+                        "firmware": [
+                                "Boot Guard fused: no coreboot. BIOS dumps/edits require SPI clip on the Winbond chip (Pico + Pomona 5250 works).",
+                                "CRITICAL: Update Thunderbolt 3 NVM firmware IMMEDIATELY on intake. The TB3 controller flash wears out and bricks the port permanently — dead TB3 also kills USB-C charging on some units.",
+                                "Keep BIOS at latest; early revisions had throttling and battery drain bugs."
+                        ],
+                        "display": [
+                                "Stock 250-nit FHD panels are dim — swap-compatible with brighter 30-pin eDP FHD IPS panels (e.g., Innolux N156HCE / AUO B156HAN series).",
+                                "UHD swap onto an FHD chassis needs the correct 40-pin cable — not economical, sell as-is."
+                        ],
+                        "faults": [
+                                "Thunderbolt 3 controller failure (no TB3 device detection, or dead USB-C charging) — check before listing, firmware fix only works pre-failure.",
+                                "Internal battery swelling — check for trackpad bulge/uneven base.",
+                                "MX150 units: verify dGPU appears in Device Manager/lspci; failed units silently fall back to iGPU.",
+                                "Numpad key wear on ex-corporate finance stock."
+                        ],
+                        "os": [
+                                "Excellent widescreen Linux workstation; everything works out of the box on Mint/Ubuntu LTS.",
+                                "MX150 needs Nvidia proprietary driver or nouveau (poor); recommend iGPU-only units for Linux buyers."
+                        ],
+                        "maxram": "64GB DDR4 (2x32GB; 32GB official)",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t480",
+                        "name": "T480",
+                        "tags": [
+                                "14-inch",
+                                "Quad-Core",
+                                "DDR4",
+                                "Tier A"
+                        ],
+                        "specs": [
+                                "Intel 8th Gen Core (i5-8250U / i5-8350U / i7-8550U / i7-8650U, quad-core ULV)",
+                                "Optional Nvidia MX150 dGPU on some SKUs",
+                                "14.0-inch HD TN / FHD IPS / WQHD IPS, 30-pin eDP",
+                                "M.2 2280 NVMe (native) OR 2.5-inch SATA depending on SKU — check which caddy/bracket is fitted",
+                                "Ports: USB-C 3.1 + Thunderbolt 3 USB-C, 2x USB-A, HDMI, native RJ45, microSD"
+                        ],
+                        "refurb": "2 SODIMM slots, 32GB official / 64GB (2x32) confirmed working. THE refurb hero: last 14-inch with hot-swap dual Power Bridge batteries, socketed everything except CPU, massive parts supply. Buy broken in bulk, part out or rebuild — either way it moves.",
+                        "value": "Tier A, highest-velocity model in the fleet. i5-8250U/16GB/256GB FHD is the volume listing; i7 + WQHD is the margin listing. Battery cycle count is the price differentiator — quote it in listings.",
+                        "parts": [
+                                "External batteries (61 / 61+ / 61++) share with T470, T570, T580, P51s, P52s.",
+                                "Keyboards interchange with T470 (check backlight variant FRU).",
+                                "2.5-inch caddies interchange with T470.",
+                                "Screen bezels, hinges, and lid assemblies interchange with T470 with minor FRU differences."
+                        ],
+                        "firmware": [
+                                "Coreboot/skulls-adjacent work possible but Boot Guard on most units means external SPI flash + IFD tricks; treat as hardware-flash territory.",
+                                "CRITICAL: Flash Thunderbolt NVM firmware update on intake — the TB3 NVM chip has a write-wear defect that permanently kills the port and sometimes USB-C charging.",
+                                "ME can be neutered via me_cleaner after external dump — document original dump before writing."
+                        ],
+                        "display": [
+                                "Stock 250-nit FHD IPS is serviceable but the 500-nit low-power FHD panel (e.g., B140HAK03.2 class) is a known drop-in upgrade and a listing differentiator.",
+                                "HD TN units: FHD IPS swap is same 30-pin cable — cheapest value-add in the fleet."
+                        ],
+                        "faults": [
+                                "TB3/USB-C port failure — test charging via USB-C AND barrel-equivalent dock before grading.",
+                                "Bridge battery contacts oxidise on units stored without external pack — clean and test hot-swap.",
+                                "Trackpad/trackpoint firmware quirks on Synaptics units — update via Lenovo firmware if cursor jumps.",
+                                "Hinge screws pulling from lid on abused ex-fleet stock — check lid flex."
+                        ],
+                        "os": [
+                                "Ideal Docker/Proxmox/home-server node and daily Linux Mint driver — zero driver drama.",
+                                "S3 sleep works natively (unlike T490 onward) — a genuine selling point to Linux buyers."
+                        ],
+                        "maxram": "64GB DDR4 (2x32GB; 32GB official)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Supported via the deguard Boot Guard bypass (ME v11) — advanced external-flash job; verify exact board on libreboot.org before quoting."
+                        }
+                },
+                {
+                        "id": "t570",
+                        "name": "T570",
+                        "tags": [
+                                "15.6-inch",
+                                "Dual-Core",
+                                "DDR4",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 6th/7th Gen Core (i5-6300U through i7-7600U, dual-core)",
+                                "Optional GeForce 940MX dGPU",
+                                "15.6-inch HD TN / FHD IPS / UHD IPS",
+                                "M.2 2280 NVMe or 2.5-inch SATA via adapter option",
+                                "First 15-inch T with native Thunderbolt 3 over USB-C"
+                        ],
+                        "refurb": "2 SODIMM slots, max 32GB DDR4. Dual-core ceiling caps resale — pitch as a big-screen budget workstation, not a performance machine. Power Bridge system identical to T580.",
+                        "value": "Tier B. Price against the T580, not near it — the quad-core gap is what buyers pay for. Good donor for T580 battery/PSU bundles.",
+                        "parts": [
+                                "External rear batteries shared with T580, T480, T470, P51s.",
+                                "Keyboards swap with T580 directly (numpad layout).",
+                                "Slim-tip 65W PSUs interchange across the whole 2016–2018 fleet."
+                        ],
+                        "firmware": [
+                                "Hardware SPI programmer mandatory for whitelist/vendor lock removal.",
+                                "Apply Thunderbolt NVM update on intake — same controller family as T480/T580."
+                        ],
+                        "display": [
+                                "FHD IPS panel swaps follow the same 30-pin eDP rules as T580."
+                        ],
+                        "faults": [
+                                "Same TB3 port mortality as the rest of the generation.",
+                                "940MX units run warm; verify no artifacting under load.",
+                                "Kaby Lake i7-7600U units often ex-CAD fleet with heavy hinge wear."
+                        ],
+                        "os": [
+                                "Solid native Linux support; good stationary Nourish-style terminal or media rig."
+                        ],
+                        "maxram": "32GB DDR4",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t470",
+                        "name": "T470",
+                        "tags": [
+                                "14-inch",
+                                "Dual-Core",
+                                "DDR4",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 6th/7th Gen Core (dual-core ULV)",
+                                "14.0-inch HD TN / FHD IPS, 30-pin eDP",
+                                "M.2 2280 NVMe or 2.5-inch SATA — conversion needs the correct proprietary caddy + cable FRU",
+                                "USB-C with Thunderbolt 3, 3x USB-A, HDMI, native RJ45"
+                        ],
+                        "refurb": "2 SODIMM slots, max 32GB DDR4. The budget twin of the T480 — near-identical chassis, dual-core internals. Strong buy-broken candidate because T480 parts demand keeps donor value high.",
+                        "value": "Tier B volume seller. i5-7300U/8GB/256GB FHD is the entry-level listing that funds the rest of the shelf.",
+                        "parts": [
+                                "Uses the exact same 61 / 61+ / 61++ external batteries as T480.",
+                                "Chassis, hinges, keyboards heavily shared with T480 — prime donor relationship.",
+                                "2.5-inch caddy interchanges with T480."
+                        ],
+                        "firmware": [
+                                "Advanced BIOS work requires hardware SPI dumps (Boot Guard fused).",
+                                "Thunderbolt NVM update applies here too — same failure family."
+                        ],
+                        "display": [
+                                "HD TN → FHD IPS swap is plug-and-play on the 30-pin cable; the standard value-add."
+                        ],
+                        "faults": [
+                                "TB3 port failure (check USB-C charging).",
+                                "Bridge battery wear — many corporate units lived docked with the external pack at 100% for years.",
+                                "Palmrest cracking near the smartcard slot on some units."
+                        ],
+                        "os": [
+                                "Rock-solid on all modern distros; great standard budget refurb asset with S3 sleep intact."
+                        ],
+                        "maxram": "32GB DDR4",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t560",
+                        "name": "T560",
+                        "tags": [
+                                "15.6-inch",
+                                "Dual-Core",
+                                "DDR3L",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 6th Gen Core (Skylake dual-core ULV)",
+                                "15.6-inch HD TN / FHD IPS / 3K (2880x1620) IPS",
+                                "2.5-inch SATA III native; M.2 2242 in WWAN slot possible on some SKUs"
+                        ],
+                        "refurb": "2 SODIMM slots, max 32GB DDR3L 1.35V. The anomaly: Skylake CPU bound to DDR3L — do NOT stock DDR4 for it, and don't confuse with the DDR4 T560's sibling era. Cheap big-screen stock.",
+                        "value": "Tier C. The 3K panel SKU is the only unit worth a premium — otherwise price to move.",
+                        "parts": [
+                                "Keyboards interchange with T550 and W550s.",
+                                "Power Bridge batteries shared with T550/T450/X250 family (Series 68/68+)."
+                        ],
+                        "firmware": [
+                                "Hardware SPI clip required for any low-level work; no software exploit path."
+                        ],
+                        "display": [
+                                "3K panel is a desirable pull for W550s upgrades — harvest from cracked-chassis units."
+                        ],
+                        "faults": [
+                                "DDR3L/DDR4 mixups from previous owners — a 'dead' T560 is often just wrong RAM.",
+                                "3K panel scaling complaints from Windows buyers — set expectations in the listing."
+                        ],
+                        "os": [
+                                "Flawless Linux display handling; efficient media/light-terminal box."
+                        ],
+                        "maxram": "32GB DDR3L",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t460",
+                        "name": "T460",
+                        "tags": [
+                                "14-inch",
+                                "Dual-Core",
+                                "DDR3L",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 6th Gen Core (Skylake dual-core)",
+                                "14.0-inch HD TN / FHD IPS",
+                                "2.5-inch SATA III native"
+                        ],
+                        "refurb": "2 SODIMM slots, max 32GB DDR3L. IMPORTANT VARIANT TRAP: the thin T460s uses DDR4 (one slot + soldered) and shares almost nothing — never mix inventory or listings between T460 / T460s / T460p (which is quad-core DDR4, 2 slots).",
+                        "value": "Tier C workhorse. Cheap, reliable, moves at entry-level price points. T460p variant, if you find one, is Tier B — 6th gen quad-core HQ chip.",
+                        "parts": [
+                                "External batteries match T450, X250, X260 (Series 68/68+ Power Bridge).",
+                                "Keyboards interchange with T450/T450s."
+                        ],
+                        "firmware": [
+                                "Hardware write-protection — physical chip flashing only."
+                        ],
+                        "display": [
+                                "HD → FHD IPS swap straightforward on 30-pin eDP."
+                        ],
+                        "faults": [
+                                "Bridge battery age — most externals are below 60% health by now, price replacements into margin.",
+                                "Skylake iGPU driver quirks on very old Windows images — always fresh-install."
+                        ],
+                        "os": [
+                                "Highly reliable under lightweight window managers; classic 'first Linux laptop' recommendation."
+                        ],
+                        "maxram": "32GB DDR3L",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t550",
+                        "name": "T550",
+                        "tags": [
+                                "15.6-inch",
+                                "Dual-Core",
+                                "DDR3L",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 5th Gen Core (Broadwell dual-core)",
+                                "15.6-inch HD / FHD / 3K IPS options",
+                                "2.5-inch SATA III"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3L. Marks the return of physical TrackPoint buttons after the Tx40 clunkpad era — this is the actual selling point, mention it.",
+                        "value": "Tier C. 3K IPS SKU carries the only real premium.",
+                        "parts": [
+                                "Keyboards interchange with T540p, W540/W541, W550s.",
+                                "Trackpad assembly is the button-equipped design harvested for Tx40 upgrades (same family as T450 pad)."
+                        ],
+                        "firmware": [
+                                "SPI clip work only; no software exploit."
+                        ],
+                        "display": [
+                                "3K panel pulls interchange with T560/W550s."
+                        ],
+                        "faults": [
+                                "Broadwell-era batteries mostly exhausted — assume replacement needed.",
+                                "Check TrackPoint button dome wear on ex-fleet units."
+                        ],
+                        "os": [
+                                "Comfortable Mint desktop at 1080p; 3K needs fractional scaling — fine on modern DEs."
+                        ],
+                        "maxram": "16GB DDR3L",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t450",
+                        "name": "T450",
+                        "tags": [
+                                "14-inch",
+                                "Dual-Core",
+                                "DDR3L",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 5th Gen Core (Broadwell dual-core)",
+                                "14.0-inch HD / HD+ / FHD options",
+                                "2.5-inch SATA III"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3L. High parts-recovery value: the 3-button trackpad assembly is the canonical drop-in fix for T440/T440p clunkpads — often worth more harvested than the whole unit sells for.",
+                        "value": "Tier C as a whole unit; Tier B as a donor. Track trackpad + battery + FHD panel yield when bidding on job lots.",
+                        "parts": [
+                                "Trackpad assembly drops into T440/T440p/T440s as the physical-button upgrade.",
+                                "Series 68/68+ Power Bridge batteries shared with T460/X250/X260.",
+                                "Keyboards interchange with T460."
+                        ],
+                        "firmware": [
+                                "Hardware SPI clip mandatory for whitelist/flag work."
+                        ],
+                        "display": [
+                                "FHD IPS panels interchange with T440-family upgrades — dual-purpose harvest."
+                        ],
+                        "faults": [
+                                "Same exhausted-battery economics as all Broadwell stock.",
+                                "Hinge cover clips brittle with age — handle teardowns carefully."
+                        ],
+                        "os": [
+                                "Resilient field laptop; long life under Linux."
+                        ],
+                        "maxram": "16GB DDR3L",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t540p",
+                        "name": "T540p",
+                        "tags": [
+                                "15.6-inch",
+                                "Socketed CPU",
+                                "DDR3L",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 4th Gen Core, FULLY SOCKETED (PGA946) — ships dual-core, accepts 47W quad-core i7 (4700MQ/4710MQ/4900MQ)",
+                                "Optional GT 730M dGPU on some SKUs",
+                                "15.6-inch HD / FHD / 3K IPS",
+                                "2.5-inch SATA III + M.2 2242 (SATA) slot"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB official DDR3L (2x16 = 32GB works on many units). The 15-inch upgrade platform: quad-core swap + FHD/3K panel + trackpad fix = strong markup on cheap dual-core stock. Budget the T450/T550 trackpad into every rebuild — stock clunkpad tanks reviews.",
+                        "value": "Tier B after modding, Tier C stock. Sell the story: 'socketed quad-core i7, user-serviceable everything.'",
+                        "parts": [
+                                "Accepts T550/W540-family trackpads as the button fix.",
+                                "Keyboards interchange with W540/W541/T550.",
+                                "Optical bay takes standard 9.5mm caddy adapters for a second 2.5-inch drive.",
+                                "Heatsinks: use the dGPU/45W-rated heatsink FRU when fitting MQ quads."
+                        ],
+                        "firmware": [
+                                "Coreboot supported via hardware flash; stock BIOS accepts MQ CPU swaps without modification.",
+                                "WLAN whitelist present on stock BIOS — plan a hardware flash or use whitelisted cards."
+                        ],
+                        "display": [
+                                "FHD and 3K IPS panels drop in over the stock TN — same cable family; the single biggest perceived-value upgrade."
+                        ],
+                        "faults": [
+                                "Clunkpad (stock) — assume replacement.",
+                                "Fan bearing whine common; repaste + fan swap during CPU upgrade anyway.",
+                                "GT 730M units: verify dGPU output, Optimus muxing can mask a dead chip."
+                        ],
+                        "os": [
+                                "Excellent compile/VM workstation with a quad MQ; handles sustained load well after repaste."
+                        ],
+                        "maxram": "16GB official / 32GB tested DDR3L",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t440p",
+                        "name": "T440p",
+                        "tags": [
+                                "14-inch",
+                                "Socketed CPU",
+                                "DDR3L",
+                                "Tier A (modded)"
+                        ],
+                        "specs": [
+                                "Intel 4th Gen Core, FULLY SOCKETED (PGA946) — 4700MQ/4710MQ quad swaps are the standard play",
+                                "Optional GT 730M dGPU",
+                                "14.0-inch HD / HD+ / FHD (TN stock; IPS swap standard)",
+                                "2.5-inch SATA III + M.2 2242 (SATA) + optical bay caddy = triple storage possible"
+                        ],
+                        "refurb": "2 SODIMM slots, 16GB official (2x16 = 32GB works). The refurb goldmine: socketed CPU, modular everything, coreboot, FHD IPS drop-in, trackpad fix. A £60 dual-core donor becomes a £180+ enthusiast listing. Keep a standing parts bin: MQ CPUs, FHD IPS panels, T450 trackpads, 45W heatsinks.",
+                        "value": "Tier A modded — the enthusiast community actively searches for these. Stock clunkpad units are Tier C; the delta IS the business model.",
+                        "parts": [
+                                "T450 trackpad assembly is the canonical 3-button upgrade.",
+                                "Optical bay: standard 9.5mm SATA caddy for HDD/SSD #2.",
+                                "Keyboards interchange with T440/T450 era (check backlight FRU).",
+                                "Fit the dGPU-class heatsink when installing MQ quads — the UMA heatsink is marginal at 47W."
+                        ],
+                        "firmware": [
+                                "Coreboot FULLY supported: external flash, read both the 4MB and 8MB SPI chips, combine, patch, write back. Document stock dumps per-serial.",
+                                "me_cleaner works within the coreboot flow.",
+                                "Stock BIOS accepts MQ CPUs but keeps the WLAN whitelist — coreboot clears it."
+                        ],
+                        "display": [
+                                "HD/HD+ TN → FHD IPS (e.g., LP140WF1/N140HCE class) with the FHD cable if not already fitted — the essential upgrade."
+                        ],
+                        "faults": [
+                                "Clunkpad — assume replacement on every unit.",
+                                "Chassis corner cracks near hinges on abused stock.",
+                                "M.2 slot is SATA-only 2242 — buyers assume NVMe; state clearly in listings.",
+                                "Coil whine on some boards under light load — bin-check before enthusiast listings."
+                        ],
+                        "os": [
+                                "Legendary developer daily driver; quad MQ + 16GB + SSD flies under Linux and takes thermal load well."
+                        ],
+                        "maxram": "16GB official / 32GB tested DDR3L",
+                        "modularity": 10,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "t440",
+                        "name": "T440",
+                        "tags": [
+                                "14-inch",
+                                "Soldered CPU",
+                                "DDR3L",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 4th Gen Core ULV, SOLDERED (BGA) — no CPU upgrades, do not confuse with T440p",
+                                "14.0-inch HD / HD+",
+                                "2.5-inch SATA III"
+                        ],
+                        "refurb": "1 SODIMM slot + 4GB soldered, max 12GB total. The trap model of the range: looks like a T440p in listings, shares almost none of its upside. Buy only at scrap-adjacent prices for the trackpad-donor chassis relationship.",
+                        "value": "Tier D. Flip cheap with an SSD or strip for panels/keyboards.",
+                        "parts": [
+                                "Shares trackpad mounting with T440p/T440s — accepts the T450 button-pad fix.",
+                                "Keyboards interchange within the Tx40 14-inch family."
+                        ],
+                        "firmware": [
+                                "Physical clip required for any BIOS work; low payoff on this platform."
+                        ],
+                        "display": [
+                                "FHD IPS swap technically possible but rarely economical on this chassis — panel is worth more in a T440p."
+                        ],
+                        "faults": [
+                                "Clunkpad.",
+                                "Soldered-CPU thermal throttling under sustained load.",
+                                "12GB RAM ceiling surprises buyers — state it."
+                        ],
+                        "os": [
+                                "Functional light web/terminal box; nothing more."
+                        ],
+                        "maxram": "12GB (4GB soldered + 8GB slot)",
+                        "modularity": 4,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t530",
+                        "name": "T530",
+                        "tags": [
+                                "15.6-inch",
+                                "Socketed",
+                                "Ivy Bridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 3rd Gen Core, socketed (rPGA988B) — takes 45W quad i7 (3630QM/3740QM) with the right heatsink + 90W+ PSU",
+                                "Optional NVS 5400M dGPU",
+                                "15.6-inch HD / HD+ / FHD TN",
+                                "2.5-inch SATA III + mSATA via WWAN slot"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3/DDR3L. The 15-inch 1vyrain platform — software BIOS unlock with no clip needed. Quad swap + FHD panel is the standard uplift.",
+                        "value": "Tier C, Tier B with quad + FHD. Classic-keyboard-mod units attract collector money.",
+                        "parts": [
+                                "Chiclet keyboards interchange with T430, W530, X230.",
+                                "Optical bay accepts 9.5mm/12.7mm caddies (check bay height).",
+                                "Classic 7-row keyboards from Tx20 fit physically after EC flash."
+                        ],
+                        "firmware": [
+                                "1vyrain: software BIOS exploit — unlocks advanced menu, clears WLAN whitelist, no hardware needed (requires the vulnerable stock BIOS version; downgrade first if patched).",
+                                "EC firmware patch enables full 7-row classic keyboard keymap.",
+                                "Coreboot possible via hardware flash for full control."
+                        ],
+                        "display": [
+                                "FHD TN is the best stock option; true IPS requires LVDS-to-eDP converter kits — enthusiast-order only."
+                        ],
+                        "faults": [
+                                "Fan error (FRU fan) common at this age — stock spares.",
+                                "NVS 5400M units: check for GPU artifacts.",
+                                "Barrel jack solder joints on heavily-docked units."
+                        ],
+                        "os": [
+                                "Extremely durable workshop reference engine; quad + SSD still genuinely usable."
+                        ],
+                        "maxram": "16GB DDR3/DDR3L",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "t430",
+                        "name": "T430",
+                        "tags": [
+                                "14-inch",
+                                "Socketed",
+                                "Ivy Bridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 3rd Gen Core, socketed — 35W quads (3612QM) safe on stock cooling; 45W quads need the dGPU heatsink",
+                                "Optional NVS 5400M dGPU",
+                                "14.0-inch HD / HD+ TN",
+                                "2.5-inch SATA III + mSATA via WWAN slot"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3/DDR3L, runs 1600MHz natively. The 14-inch 1vyrain workhorse. mSATA boot + 2.5-inch bulk storage is a tidy dual-drive setup at zero caddy cost.",
+                        "value": "Tier C. Classic-keyboard conversions and quad swaps lift it; otherwise a dependable £80-110 listing.",
+                        "parts": [
+                                "Keyboards swap with T530, W530, X230.",
+                                "Round-barrel 65/90W PSUs — universal across pre-2013 stock.",
+                                "Optical bay caddies standard 9.5mm."
+                        ],
+                        "firmware": [
+                                "1vyrain software unlock — whitelist removal + advanced menu without opening the machine.",
+                                "7-row classic keyboard needs the EC flash for correct keymap.",
+                                "Hardware flash path available for coreboot."
+                        ],
+                        "display": [
+                                "HD+ TN is the ceiling without LVDS converter mods."
+                        ],
+                        "faults": [
+                                "Hinge wear (heavy fleet use).",
+                                "Fan errors — same FRU family as T530.",
+                                "mSATA slot is SATA II speed — set SSD expectations."
+                        ],
+                        "os": [
+                                "A Linux classic; smooth on all modern distros with SSD + 8GB minimum."
+                        ],
+                        "maxram": "16GB DDR3/DDR3L",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "t520",
+                        "name": "T520",
+                        "tags": [
+                                "15.6-inch",
+                                "Socketed",
+                                "Sandy Bridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 2nd Gen Core, socketed — quad i7-2760QM viable with 45W heatsink + 135W PSU on dGPU SKUs",
+                                "15.6-inch HD / HD+ / FHD TN",
+                                "2.5-inch SATA III + mSATA via WWAN"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3. Last 15-inch with the native classic 7-row keyboard — that alone sells it to the typing crowd. No native USB 3.0 (ExpressCard USB3 adapters fix it).",
+                        "value": "Tier C, but the 7-row + FHD combination has a dedicated buyer base that pays over spec-sheet value.",
+                        "parts": [
+                                "7-row keyboards interchange with T420, W520, X220.",
+                                "Optical bay parts conform to W520 spec.",
+                                "135W PSU needed for quad/dGPU builds — bundle it."
+                        ],
+                        "firmware": [
+                                "Software-modified BIOS packages (1vyrain-era predecessor patches) clear whitelists and unlock menus entirely in software.",
+                                "Coreboot supported via hardware flash."
+                        ],
+                        "display": [
+                                "FHD TN SKU is the target panel; harvest from W520 donors."
+                        ],
+                        "faults": [
+                                "Age-related: swollen RTC batteries, dry thermal paste, tired hinges — full service every unit.",
+                                "Check ExpressCard slot function if listing the USB3 workaround."
+                        ],
+                        "os": [
+                                "Modern distros run perfectly; pair with SSD and it's a fine command-line/writing rig."
+                        ],
+                        "maxram": "16GB DDR3",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t420",
+                        "name": "T420",
+                        "tags": [
+                                "14-inch",
+                                "Socketed",
+                                "Sandy Bridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 2nd Gen Core, socketed (35W quads possible with care)",
+                                "Optional NVS 4200M dGPU",
+                                "14.0-inch HD / HD+ TN",
+                                "2.5-inch SATA III + mSATA via WWAN"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3. The archetypal classic: 7-row keyboard, bulletproof chassis, superb thermals. Sells on nostalgia and keyboard feel more than performance — photograph the keyboard.",
+                        "value": "Tier C with a stable floor; mint-condition units with fresh batteries outperform spec-based pricing.",
+                        "parts": [
+                                "7-row keyboard interchanges with T520, W520, X220 (and mounts in Tx30 with EC mod).",
+                                "Round-barrel PSUs universal.",
+                                "Ultrabay caddies standard."
+                        ],
+                        "firmware": [
+                                "Software BIOS mods clear WLAN whitelist and unlock hidden menus — no clip needed.",
+                                "Coreboot via hardware flash for full-control builds; 1600MHz RAM tables unlockable."
+                        ],
+                        "display": [
+                                "HD+ (1600x900) is the best factory panel; LVDS IPS conversions exist but are kit-order territory."
+                        ],
+                        "faults": [
+                                "NVS 4200M SKUs run hotter for no real benefit — prefer iGPU units.",
+                                "Every unit needs repaste + RTC battery by now.",
+                                "USB port wear on heavily-used fleet stock."
+                        ],
+                        "os": [
+                                "Excellent build quality for CLI/testing terminals; light DEs recommended."
+                        ],
+                        "maxram": "16GB DDR3",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t510",
+                        "name": "T510",
+                        "tags": [
+                                "15.6-inch",
+                                "1st Gen Core",
+                                "DDR3",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 1st Gen Core (Arrandale)",
+                                "Optional NVS 3100M dGPU",
+                                "15.6-inch HD / HD+ / FHD, 16:9",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3. CRITICAL RAM QUIRK: memory controller demands low-density 2Rx8 modules — modern 1Rx8 high-density sticks cause instant boot-loops. Label your 2Rx8 stock and keep it segregated.",
+                        "value": "Tier D. Sell cheap with SSD, or strip: FHD panels and keyboards have residual demand.",
+                        "parts": [
+                                "Keyboards interchange with T410, W510.",
+                                "Battery rails shared with the Tx10 family."
+                        ],
+                        "firmware": [
+                                "Low-level access requires SPI clip work (awkward chip placement — check board revision before quoting mod jobs)."
+                        ],
+                        "display": [
+                                "FHD SKU panels worth harvesting for W510 builds."
+                        ],
+                        "faults": [
+                                "2Rx8 RAM dependency — the #1 cause of 'dead' listings you can buy cheap and revive.",
+                                "NVS 3100M solder-joint failures (Nvidia-era) — prefer iGPU units.",
+                                "Arrandale runs hot; repaste mandatory."
+                        ],
+                        "os": [
+                                "Responsive under Debian + XFCE; keep expectations modest."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t410",
+                        "name": "T410",
+                        "tags": [
+                                "14.1-inch",
+                                "16:10",
+                                "DDR3",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 1st Gen Core (Arrandale)",
+                                "Optional NVS 3100M dGPU",
+                                "14.1-inch 16:10 (1280x800 / 1440x900)",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3, same strict 2Rx8 low-density requirement as T510. The 16:10 aspect ratio is the actual selling point to the right buyer — last of the 14-inch 16:10 T-series.",
+                        "value": "Tier D generally; clean 1440x900 units attract 16:10 enthusiasts.",
+                        "parts": [
+                                "Keyboards interchange with T510, W510.",
+                                "Battery rails align with the Tx20 Series 70/70+ family."
+                        ],
+                        "firmware": [
+                                "Hardware programmer required for any deep BIOS values."
+                        ],
+                        "display": [
+                                "1440x900 panels are the desirable pull; 1280x800 units are donor stock."
+                        ],
+                        "faults": [
+                                "2Rx8 RAM quirk — same revival opportunity as T510.",
+                                "NVS 3100M failure risk — iGPU units age better.",
+                                "Hinge and lid-latch wear."
+                        ],
+                        "os": [
+                                "Solid terminal engine for network nodes and legacy testing."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t500",
+                        "name": "T500",
+                        "tags": [
+                                "15.4-inch",
+                                "Core 2 Duo",
+                                "Libreboot",
+                                "Tier D/Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo (Penryn/Merom)",
+                                "Switchable Intel GMA + ATI Radeon HD 3650 on dGPU SKUs",
+                                "15.4-inch WXGA/WSXGA+/WUXGA, CCFL or LED",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3. THE T500 MEMORY WALL: requires low-density 2Rx8 modules (256Mx8 chips) — high-density sticks fail instantly. Value today is almost entirely Libreboot-driven, not spec-driven.",
+                        "value": "Tier D as a laptop, collector-tier as a Libreboot platform. Libreboot-flashed units with documented dumps sell to a privacy-focused niche at 2-3x hardware value.",
+                        "parts": [
+                                "Keyboards, cooling fans, and structural parts shared with R500 and W500.",
+                                "WUXGA (1920x1200) LED panels are the prize pull."
+                        ],
+                        "firmware": [
+                                "Libreboot fully supported: external SPI flash via Pico or CH341a (3.3V mod verified!) with SOIC-8/16 clip. Keep the original dump per-serial.",
+                                "On dGPU SKUs the ATI chip is unusable under Libreboot — source Intel-only SKUs or wire for permanent iGPU."
+                        ],
+                        "display": [
+                                "WUXGA LED swap onto lower-res chassis is possible within the LED-cable family — check inverter vs LED variant first."
+                        ],
+                        "faults": [
+                                "2Rx8 wall — again, the cheap-revival play.",
+                                "CCFL backlights dying — LED SKUs only for resale.",
+                                "GPU BGA age on ATI SKUs."
+                        ],
+                        "os": [
+                                "Excellent 100% blob-free workstation candidate; pair with Trisquel/Debian-libre for the full pitch."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "Classic official target. Intel-iGPU SKUs preferred (ATI dead under Libreboot)."
+                        }
+                },
+                {
+                        "id": "t400",
+                        "name": "T400",
+                        "tags": [
+                                "14.1-inch",
+                                "Core 2 Duo",
+                                "Libreboot",
+                                "Tier D/Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo",
+                                "Switchable Intel + ATI HD 3470 on some SKUs",
+                                "14.1-inch WXGA/WXGA+ widescreen",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3, identical 2Rx8 low-density dependency to the T500. The more portable Libreboot workhorse — historically the most-flashed Libreboot laptop after the X200.",
+                        "value": "Collector-tier when Libreboot-flashed with an LED WXGA+ panel and 8GB; otherwise Tier D.",
+                        "parts": [
+                                "Shares internals and structure with R400.",
+                                "LED-backlit WXGA+ panels are the target pull/upgrade."
+                        ],
+                        "firmware": [
+                                "Libreboot fully supported via external hardware rewrite (SOIC-8/16 clip, Pico/CH341a).",
+                                "ATI dGPU SKUs: same Libreboot caveat as T500 — Intel-only preferred."
+                        ],
+                        "display": [
+                                "Prefer LED-backlit SKUs for both longevity and Libreboot resale."
+                        ],
+                        "faults": [
+                                "2Rx8 RAM wall.",
+                                "CCFL SKU backlight death.",
+                                "Palmrest and hinge wear typical of the age."
+                        ],
+                        "os": [
+                                "Stable base for embedded Linux dev and retro workflows; the classic freedom-laptop listing."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "Classic official target. Intel-iGPU SKUs preferred (ATI dead under Libreboot)."
+                        }
+                },
+                {
+                        "id": "t61",
+                        "name": "T61 / T61p",
+                        "tags": [
+                                "Modular",
+                                "Core 2 Duo",
+                                "DDR2",
+                                "Tier D/Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo (Merom/Penryn via Middleton)",
+                                "14.1-inch 4:3 or 14.1/15.4-inch 16:10 options",
+                                "Intel iGPU or Nvidia NVS 140M / Quadro FX 570M (T61p)",
+                                "SATA (locked to 1.5Gbps stock; Middleton unlocks 3Gbps)"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR2 — but 4GB DDR2 SODIMMs are rare and expensive; 2x2GB is the economic ceiling. CRITICAL FAULT LINE: pre-August 2008 Nvidia dGPU units suffer the infamous bumpgate solder failure — Intel iGPU SKUs are the only safe resale stock. T61p = all Nvidia = all risk.",
+                        "value": "Tier D, but 14.1-inch 4:3 iGPU units in clean condition are genuine collector stock — the last 4:3 T-series generation.",
+                        "parts": [
+                                "Keyboards interchange with T60, R60, R61.",
+                                "4:3 panels interchange with T60 (check inverter/cable variant).",
+                                "Ultrabay Slim caddies standard."
+                        ],
+                        "firmware": [
+                                "Middleton BIOS: software-flashed mod that unlocks SATA II (3Gbps), clears the WLAN whitelist, and enables full-speed everything — run it on every unit as standard intake.",
+                                "No hardware clip needed for the Middleton path."
+                        ],
+                        "display": [
+                                "4:3 SXGA+ (1400x1050) panels are the desirable spec; harvest and hoard."
+                        ],
+                        "faults": [
+                                "Nvidia bumpgate (pre-08/2008 dGPU) — reflow is temporary; do not warranty these.",
+                                "DDR2 pricing traps — check RAM before bidding 8GB 'upgradeable' claims.",
+                                "CCFL backlight fade universal at this age."
+                        ],
+                        "os": [
+                                "Great legacy-Linux and distraction-free writing platform; Middleton + SSD transforms the feel."
+                        ],
+                        "maxram": "8GB DDR2 (4GB sticks rare/costly)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "t60",
+                        "name": "T60",
+                        "tags": [
+                                "4:3 Aspect",
+                                "Legacy",
+                                "DDR2",
+                                "Collector"
+                        ],
+                        "specs": [
+                                "Intel Core Duo (32-bit) or Core 2 Duo (64-bit — required for Libreboot/modern OS)",
+                                "14.1/15.0-inch 4:3 options incl. the legendary 15-inch FlexView IPS SKUs (SXGA+ / QXGA 2048x1536)",
+                                "ATI X1300/X1400 or Intel iGPU",
+                                "SATA I interface ceiling"
+                        ],
+                        "refurb": "2 SODIMM slots, max 4GB physical / ~3GB usable — the Intel 945 chipset hard-caps addressable memory at 3GB. The FlexView IPS panels (especially IDTech QXGA) are the crown jewels of the entire legacy fleet: a working QXGA FlexView unit is a hold-and-auction item, not a fixed-price listing.",
+                        "value": "Collector tier for FlexView/QXGA and clean 4:3 units; parts tier otherwise. Always identify the panel before pricing anything T60.",
+                        "parts": [
+                                "Keyboards match T61, R60, R61.",
+                                "4:3 panels interchange with matching T61/R60 variants — FlexView pulls fit T61 4:3 chassis for premium builds."
+                        ],
+                        "firmware": [
+                                "Libreboot compatible on Core 2 Duo (64-bit) boards via SPI flashing — combine with FlexView for the ultimate collector build.",
+                                "Core Duo (32-bit) boards: upgrade the CPU or treat as parts."
+                        ],
+                        "display": [
+                                "FlexView IPS identification is the key skill: check FRU/panel model before listing ANY T60. QXGA cables and inverters are their own rabbit hole — keep documented sets."
+                        ],
+                        "faults": [
+                                "3GB RAM ceiling — non-negotiable chipset limit, state it.",
+                                "ATI X1400 age; iGPU units simpler for Linux.",
+                                "Chassis flex on 15-inch magnesium-less variants; check GPU/board cracks."
+                        ],
+                        "os": [
+                                "Runs lightweight 32-bit distros or 64-bit Debian beautifully with custom WMs; FlexView + Libreboot is a legend-status build."
+                        ],
+                        "maxram": "3GB usable (945 chipset cap)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "Original official target — Core 2 Duo (64-bit) boards only, SPI clip flash."
+                        }
+                }
+        ],
+        "X": [
+                {
+                        "id": "x280",
+                        "name": "X280",
+                        "tags": [
+                                "12.5-inch",
+                                "Soldered RAM",
+                                "DDR4",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 8th Gen Core (quad-core ULV)",
+                                "12.5-inch HD TN / FHD IPS (touch option)",
+                                "M.2 2280 NVMe native",
+                                "USB-C charging (one TB3 port); RJ45 only via proprietary breakout dongle"
+                        ],
+                        "refurb": "0 SODIMM slots — ALL memory soldered (8GB or 16GB fixed). Verify the RAM spec in the listing photos before bulk bidding; 8GB units have a hard resale ceiling. Power Bridge dropped entirely — single internal battery.",
+                        "value": "Tier B for 16GB/FHD units (genuinely fast, very portable); Tier C for 8GB. The spec-check discipline IS the margin here.",
+                        "parts": [
+                                "Shares almost nothing structural with X270 — different chassis generation.",
+                                "Ethernet breakout dongle: stock several, buyers always want one.",
+                                "Internal battery FRU shared with some X390-era siblings — check FRU exactly."
+                        ],
+                        "firmware": [
+                                "Boot Guard fused; SPI clip work only for BIOS-level jobs.",
+                                "Thunderbolt NVM update on intake — same controller mortality as the T480 generation."
+                        ],
+                        "display": [
+                                "HD TN → FHD IPS swap possible on the eDP cable; worthwhile on 16GB units."
+                        ],
+                        "faults": [
+                                "Soldered 8GB units mislisted as 'upgradeable' — the trap to avoid AND the mispriced stock to hunt.",
+                                "TB3/USB-C port failure = charging failure = brick; test first.",
+                                "Keyboard ribbon wear on heavily-travelled units."
+                        ],
+                        "os": [
+                                "Superb compact secure-Linux travel terminal; NVMe + quad-core in under 1.2kg."
+                        ],
+                        "maxram": "8GB or 16GB SOLDERED (fixed)",
+                        "modularity": 3,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x270",
+                        "name": "X270",
+                        "tags": [
+                                "12.5-inch",
+                                "PowerBridge",
+                                "DDR4",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 6th/7th Gen Core (dual-core)",
+                                "12.5-inch HD TN / FHD IPS",
+                                "2.5-inch SATA native; M.2 NVMe possible via chassis caddy adapter on some configs",
+                                "USB-C (non-TB on most SKUs) + USB-A + HDMI + native RJ45"
+                        ],
+                        "refurb": "1 SODIMM slot, 16GB official (a single 32GB stick works on many boards — test per unit before claiming). The last 12.5-inch with hot-swap dual Power Bridge — all-day-battery pitch with 68+ external packs.",
+                        "value": "Tier B. FHD + fresh 61++-style external pack + 16GB is the premium mobile listing.",
+                        "parts": [
+                                "Power Bridge batteries (Series 68/68+ internal + external) shared with X240/X250/X260.",
+                                "Keyboards interchange with X260 (check FRU).",
+                                "2.5-inch caddy/cable shared with X260."
+                        ],
+                        "firmware": [
+                                "SPI clip path only for low-level work."
+                        ],
+                        "display": [
+                                "HD → FHD IPS swap is the standard uplift; same 30-pin eDP family."
+                        ],
+                        "faults": [
+                                "Bridge battery contact oxidation.",
+                                "USB-C charging port wear (it's the only charge path on some configs — check both charge inputs where fitted).",
+                                "Chassis corner cracks on drop-damaged fleet stock."
+                        ],
+                        "os": [
+                                "Exceptional mobile Linux platform; the go-to recommendation for sysadmins wanting swappable batteries."
+                        ],
+                        "maxram": "16GB official DDR4 (32GB stick often works)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x260",
+                        "name": "X260",
+                        "tags": [
+                                "12.5-inch",
+                                "DDR4",
+                                "PowerBridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 6th Gen Core (Skylake dual-core)",
+                                "12.5-inch HD TN / FHD IPS",
+                                "2.5-inch SATA III bay"
+                        ],
+                        "refurb": "1 SODIMM slot, max 16GB DDR4 (32GB single-stick often works — verify per board). Introduced DDR4 into the X250 shell — visually near-identical to X250, so check the RAM generation before stocking modules.",
+                        "value": "Tier C volume portable. FHD units only for resale; HD TN units are donor stock.",
+                        "parts": [
+                                "Keyboards, batteries (68/68+), and most assemblies interchange directly with X250.",
+                                "Panel family shared with X250/X270."
+                        ],
+                        "firmware": [
+                                "Direct chip connection required for advanced changes."
+                        ],
+                        "display": [
+                                "HD → FHD IPS swap standard."
+                        ],
+                        "faults": [
+                                "DDR3L/DDR4 confusion with X250 stock — label bins strictly.",
+                                "Same tired-external-battery economics as all Power Bridge stock."
+                        ],
+                        "os": [
+                                "Very stable on Ubuntu LTS; solid grab-and-go admin box."
+                        ],
+                        "maxram": "16GB official DDR4 (32GB stick often works)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x250",
+                        "name": "X250",
+                        "tags": [
+                                "12.5-inch",
+                                "DDR3L",
+                                "Physical Buttons",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 5th Gen Core (Broadwell dual-core)",
+                                "12.5-inch HD TN / FHD IPS",
+                                "2.5-inch SATA III"
+                        ],
+                        "refurb": "1 SODIMM slot, max 16GB DDR3L. Sought after for restoring the physical TrackPoint buttons after the X240 — and its trackpad assembly is the canonical X240 fix, making it a dual-purpose stock item.",
+                        "value": "Tier C whole; trackpad assemblies hold standalone value as X240 upgrades.",
+                        "parts": [
+                                "Trackpad assembly drops into X240 as the button fix.",
+                                "Batteries (68/68+ internal + external) shared across X240–X270.",
+                                "Keyboards interchange with X240 (check FRU)."
+                        ],
+                        "firmware": [
+                                "External clip programmer required for BIOS work."
+                        ],
+                        "display": [
+                                "FHD IPS swap onto HD chassis — standard uplift."
+                        ],
+                        "faults": [
+                                "Broadwell battery age.",
+                                "Hinge cover clip brittleness during teardown."
+                        ],
+                        "os": [
+                                "Superb lightweight web/network-testing portable."
+                        ],
+                        "maxram": "16GB DDR3L",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x240",
+                        "name": "X240",
+                        "tags": [
+                                "12.5-inch",
+                                "Clunkpad",
+                                "DDR3L",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 4th Gen Core (Haswell dual-core)",
+                                "12.5-inch HD TN / FHD IPS eDP",
+                                "Single 2.5-inch 7mm bay"
+                        ],
+                        "refurb": "1 SODIMM slot ONLY, max 8GB DDR3L 1.35V. TECHNIQUE WARNING: uses a non-standard CR1632 CMOS coin cell — a CR2032 will not fit the housing; stock CR1632s or you'll stall mid-rebuild. Clunkpad standard — X250 pad swap transforms it.",
+                        "value": "Tier D stock; Tier C with X250 trackpad + FHD IPS + fresh battery. Fix-and-flip maths only work at low buy-in.",
+                        "parts": [
+                                "Internal + external batteries interchange with X250, X260, X270.",
+                                "X250 trackpad is the drop-in button upgrade.",
+                                "7mm drive bay — 9.5mm drives do NOT fit."
+                        ],
+                        "firmware": [
+                                "External clip required for BIOS-level access."
+                        ],
+                        "display": [
+                                "HD TN → FHD IPS swap on eDP; do it whenever the chassis justifies the spend."
+                        ],
+                        "faults": [
+                                "Clunkpad — assume replacement.",
+                                "CR1632 CMOS cell (stock them!).",
+                                "8GB single-slot ceiling disappoints buyers — state clearly."
+                        ],
+                        "os": [
+                                "Efficient ultra-light terminal once the trackpad is sorted."
+                        ],
+                        "maxram": "8GB DDR3L (single slot)",
+                        "modularity": 5,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x230",
+                        "name": "X230 / X230T",
+                        "tags": [
+                                "12.5-inch",
+                                "Ivy Bridge",
+                                "Moddable",
+                                "Tier B (modded)"
+                        ],
+                        "specs": [
+                                "Intel 3rd Gen Core (dual-core soldered)",
+                                "12.5-inch TN or premium IPS (the IPS SKU is the one to hunt)",
+                                "7mm 2.5-inch SATA III + mSATA via WWAN slot"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3/DDR3L. The enthusiast modding platform: 1vyrain, EC keyboard mod, coreboot, FHD conversion kits. X230T (tablet) screens, hinges, and digitizers do NOT interchange with standard X230 — separate inventory entirely.",
+                        "value": "Tier B modded (7-row conversion + IPS commands enthusiast money); Tier C stock. mSATA + SSD dual-drive is a free-feeling upsell.",
+                        "parts": [
+                                "Island keyboards interchange with T430, T530, W530.",
+                                "Classic X220 7-row keyboards fit after EC flash (the signature mod).",
+                                "X220 batteries fit but need firmware patching to charge — document per-unit.",
+                                "IPS panel pulls from donor X230s are gold — grade panels separately."
+                        ],
+                        "firmware": [
+                                "1vyrain: full software BIOS unlock — whitelist removal, advanced menu, no clip (downgrade BIOS first if patched past the vulnerable version).",
+                                "EC flash enables correct 7-row classic keymap.",
+                                "Coreboot supported via hardware flash for maximum-control builds.",
+                                "FHD mod kits (LVDS→eDP converter boards, e.g. Nitrocaster-class) exist but need soldering skill — quote accordingly."
+                        ],
+                        "display": [
+                                "Premium IPS SKU identification is step one on every intake.",
+                                "FHD conversion is the halo mod but a genuine bench job — only for commission builds."
+                        ],
+                        "faults": [
+                                "TN panels wash out badly — IPS or swap.",
+                                "X230T inventory contamination — label tablet parts separately.",
+                                "Fan FRU age; repaste on intake."
+                        ],
+                        "os": [
+                                "Enthusiast favourite; flies under Mint/Arch with SSD + 16GB. The 7-row/IPS/coreboot build is a community grail."
+                        ],
+                        "maxram": "16GB DDR3/DDR3L",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "x220",
+                        "name": "X220",
+                        "tags": [
+                                "12.5-inch",
+                                "7-Row",
+                                "Sandy Bridge",
+                                "Tier C/Collector"
+                        ],
+                        "specs": [
+                                "Intel 2nd Gen Core (dual-core)",
+                                "12.5-inch TN or IPS 1366x768 (IPS SKU is the collector spec)",
+                                "7mm 2.5-inch bay + mSATA via WWAN"
+                        ],
+                        "refurb": "2 SODIMM slots, max 16GB DDR3 (tolerates 1.5V and 1.35V). The last 12.5-inch with the factory 7-row classic keyboard — IPS + 7-row is a permanent-demand combination that has never really depreciated.",
+                        "value": "Tier C for TN units; collector-adjacent for clean IPS units. Photograph the keyboard and panel model in every listing.",
+                        "parts": [
+                                "7-row keyboards interchange with T420, T520, W520 — and are the donor supply for X230 conversions (hoard them).",
+                                "Panel glass/LCD interchanges with X230.",
+                                "mSATA SSDs give a tidy dual-drive setup."
+                        ],
+                        "firmware": [
+                                "Software BIOS mods lift the WLAN whitelist without hardware.",
+                                "Hardware coreboot flash unlocks 1600MHz memory tables and full control."
+                        ],
+                        "display": [
+                                "IPS SKU identification (check panel FRU) is the single biggest value determinant on intake."
+                        ],
+                        "faults": [
+                                "TN washout on non-IPS units.",
+                                "Every unit needs repaste + often a fan by now.",
+                                "Chassis magnesium cracks near hinges on hard-life units."
+                        ],
+                        "os": [
+                                "Phenomenal distraction-free mobile terminal; permanently beloved by Linux sysadmins."
+                        ],
+                        "maxram": "16GB DDR3",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "x201",
+                        "name": "X201",
+                        "tags": [
+                                "12.1-inch",
+                                "Nehalem",
+                                "DDR3",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 1st Gen Core (Arrandale)",
+                                "12.1-inch 16:10 (1280x800)",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3. CRITICAL RAM QUIRK: strict low-density 2Rx8 requirement — high-density sticks boot-loop instantly. Runs hot; repaste every unit on intake.",
+                        "value": "Tier D. Buy 'dead' listings cheap, fit 2Rx8 RAM, resell working — the reliable X201 play.",
+                        "parts": [
+                                "Keyboards and palmrest plastics align with X200/X200s.",
+                                "Batteries interchange within the X200/X201 family."
+                        ],
+                        "firmware": [
+                                "SPI clip programming for low-level work. NOT Libreboot-compatible (unlike the X200) — don't mix up listings."
+                        ],
+                        "display": [
+                                "16:10 800p panel is the charm; no meaningful upgrade path."
+                        ],
+                        "faults": [
+                                "2Rx8 wall — the revival opportunity.",
+                                "Arrandale thermals — repaste mandatory.",
+                                "Fan FRU age."
+                        ],
+                        "os": [
+                                "Fine under lightweight modern Linux once repasted."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x200",
+                        "name": "X200",
+                        "tags": [
+                                "12.1-inch",
+                                "16:10",
+                                "Libreboot",
+                                "Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo",
+                                "12.1-inch 16:10 (1280x800) widescreen",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3, same strict 2Rx8 low-density rule as the X201. The definitive Libreboot machine — the single most-requested blob-free laptop. Value is firmware-story-driven, not spec-driven.",
+                        "value": "Collector tier when Libreboot-flashed with documented dumps and 8GB; Tier D as a plain old laptop. The flash IS the product.",
+                        "parts": [
+                                "Keyboards interchange with X201/X201s.",
+                                "X200s (LV CPU, different board) is NOT identical for flashing — check exact model."
+                        ],
+                        "firmware": [
+                                "The pinnacle Libreboot target: SOIC-8/16 clip + external programmer (Pico or CH341a-3.3V), keep original dump per-serial, verify with flashrom before and after.",
+                                "Post-flash: WiFi card must be an Atheros (blob-free) for the full pitch — stock AR9280s."
+                        ],
+                        "display": [
+                                "1280x800 is what it is; panel condition grading matters more than upgrades here."
+                        ],
+                        "faults": [
+                                "2Rx8 wall.",
+                                "CCFL vs LED backlight variants — LED units only for premium listings.",
+                                "Hinge and lid wear typical."
+                        ],
+                        "os": [
+                                "The high-security blob-free flagship build: Libreboot + Atheros + Trisquel/Debian, sold as a complete story."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "The definitive Libreboot machine. SOIC clip + external programmer."
+                        }
+                },
+                {
+                        "id": "x61",
+                        "name": "X61 / X61s",
+                        "tags": [
+                                "4:3 Aspect",
+                                "Classic",
+                                "DDR2",
+                                "Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo (X61s = low-voltage CPU, lighter thermals)",
+                                "12.1-inch 4:3 XGA (1024x768); SXGA+ AFFS premium panels on some X61T tablets",
+                                "SATA locked to 1.5Gbps stock — Middleton unlocks 3Gbps"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR2 — but 4GB DDR2 SODIMM pricing usually caps builds at 2x2GB. Last 4:3 X-series; genuine collector demand for clean units. Middleton flash on intake, always.",
+                        "value": "Collector tier for clean units with good batteries; the 4:3 nostalgia market is small but pays.",
+                        "parts": [
+                                "Keyboards interchange with X60.",
+                                "X61T tablet parts (digitizer/hinge) are separate inventory — do not cross."
+                        ],
+                        "firmware": [
+                                "Middleton BIOS: software flash from within the OS — unlocks SATA II speeds and clears whitelists. Standard intake step, no hardware needed."
+                        ],
+                        "display": [
+                                "XGA 4:3 is the spec; X61T AFFS panels are a niche premium pull for tablet builds."
+                        ],
+                        "faults": [
+                                "DDR2 4GB-stick economics — quote 4GB total builds by default.",
+                                "CCFL backlight fade.",
+                                "X61s battery shim requirement when using standard packs."
+                        ],
+                        "os": [
+                                "Charming vintage emulation/writing terminal under minimal Linux; SSD + Middleton makes it genuinely usable."
+                        ],
+                        "maxram": "8GB DDR2 (practically 4GB)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "x60",
+                        "name": "X60 / X60s",
+                        "tags": [
+                                "4:3 Aspect",
+                                "Blob-Free",
+                                "DDR2",
+                                "Collector"
+                        ],
+                        "specs": [
+                                "Intel Core Duo (32-bit) or Core 2 Duo (64-bit — required for Libreboot + modern OS)",
+                                "12.1-inch 4:3 XGA",
+                                "SATA I factory configuration"
+                        ],
+                        "refurb": "2 SODIMM slots, max 4GB physical / ~3GB usable — the 945 chipset's hard 3GB addressing ceiling. The other historic Libreboot machine; value follows the firmware story like the X200.",
+                        "value": "Collector/parts tier. Libreboot-flashed Core 2 Duo units with documentation sell to the freedom-software niche.",
+                        "parts": [
+                                "Screens and modular items interchange with X61.",
+                                "X60s slim batteries need spacing shims on standard bases.",
+                                "Keyboards match X61."
+                        ],
+                        "firmware": [
+                                "Full native Libreboot support via SPI clip — one of the two original Libreboot laptops.",
+                                "Core Duo boards: swap to Core 2 Duo before flashing for 64-bit support."
+                        ],
+                        "display": [
+                                "XGA 4:3 panel condition grading is the value axis."
+                        ],
+                        "faults": [
+                                "3GB ceiling — chipset-level, non-negotiable.",
+                                "32-bit Core Duo boards limit OS options — check CPU before pricing.",
+                                "Age-universal: backlight, battery, paste."
+                        ],
+                        "os": [
+                                "Maximum-privacy lightweight Linux terminal; a piece of libre-firmware history you can actually sell as one."
+                        ],
+                        "maxram": "3GB usable (945 chipset cap)",
+                        "modularity": 6,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "One of the two original Libreboot laptops. SPI clip flash."
+                        }
+                }
+        ],
+        "W": [
+                {
+                        "id": "p51",
+                        "name": "P51 Workstation",
+                        "tags": [
+                                "15.6-inch",
+                                "Quad-Core",
+                                "DDR4",
+                                "Tier A"
+                        ],
+                        "specs": [
+                                "Intel 7th Gen Core i7 HQ / Xeon E3-1505M v6 (ECC support with Xeon)",
+                                "Nvidia Quadro M1200 / M2200",
+                                "15.6-inch FHD IPS / UHD IPS (X-Rite calibrator on some SKUs)",
+                                "2x M.2 2280 NVMe + 1x 2.5-inch SATA — triple-drive capable",
+                                "170W slim-tip PSU required"
+                        ],
+                        "refurb": "4 SODIMM slots, max 64GB DDR4 (ECC with Xeon). The serious mobile workstation listing: quad HQ/Xeon, triple storage, socketless but massively expandable. Always ship with the correct 170W slim-tip brick — 65/90W chargers cause instant throttle complaints.",
+                        "value": "Tier A workstation stock. Xeon/ECC/UHD units command CAD-professional pricing; FHD i7 units are the volume workstation listing.",
+                        "parts": [
+                                "170W slim-tip PSUs interchange with P50/P70 family.",
+                                "Keyboards interchange with P50 (numpad layout).",
+                                "Battery FRU shared with P50."
+                        ],
+                        "firmware": [
+                                "Boot Guard fused — SPI clip only for BIOS-level work.",
+                                "Update Thunderbolt NVM on intake; same TB3 controller family risk."
+                        ],
+                        "display": [
+                                "UHD IPS panels are the prize spec; FHD units are perfectly fine daily workstations."
+                        ],
+                        "faults": [
+                                "Quadro thermals — repaste on intake, dual-fan assembly check.",
+                                "170W PSU missing from job lots — budget replacements.",
+                                "UHD SKU battery drain complaints — set runtime expectations."
+                        ],
+                        "os": [
+                                "Superb Linux workstation with mature Quadro driver support; excellent Proxmox/VM host with 64GB."
+                        ],
+                        "maxram": "64GB DDR4 / ECC with Xeon (4 slots)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "p50",
+                        "name": "P50 Workstation",
+                        "tags": [
+                                "15.6-inch",
+                                "Quad-Core",
+                                "DDR4",
+                                "Tier A"
+                        ],
+                        "specs": [
+                                "Intel 6th Gen Core i7 HQ / Xeon E3-1505M v5 (ECC with Xeon)",
+                                "Nvidia Quadro M1000M / M2000M",
+                                "15.6-inch FHD IPS / UHD IPS options",
+                                "2x M.2 2280 NVMe + 1x 2.5-inch SATA",
+                                "170W slim-tip PSU required"
+                        ],
+                        "refurb": "4 SODIMM slots, max 64GB DDR4. The value workstation: Skylake quad HQ, four RAM slots, triple storage, robust chassis. Outstanding homelab/base-station platform — pitch it to self-hosters explicitly.",
+                        "value": "Tier A at workstation prices that undercut the P51 — the smart-money listing for buyers who read spec sheets.",
+                        "parts": [
+                                "170W slim-tip PSU shared with P51/P70.",
+                                "Keyboards interchange with P51.",
+                                "Internal battery FRU shared with P51."
+                        ],
+                        "firmware": [
+                                "SPI clip territory for BIOS work; Boot Guard fused.",
+                                "Thunderbolt NVM update on intake."
+                        ],
+                        "display": [
+                                "FHD IPS standard is genuinely good; UHD units for colour-work buyers."
+                        ],
+                        "faults": [
+                                "Fan/heatsink dust load on ex-CAD units — full service every intake.",
+                                "Quadro M-series solder age — burn-in test under GPU load before listing.",
+                                "Slim-tip 170W supply chain — stock bricks."
+                        ],
+                        "os": [
+                                "Exceptional Linux/homelab node: 64GB, triple drives, ECC option. A legitimate rack-alternative base station."
+                        ],
+                        "maxram": "64GB DDR4 / ECC with Xeon (4 slots)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "w541",
+                        "name": "W540 / W541",
+                        "tags": [
+                                "15.6-inch",
+                                "Quad-Core",
+                                "DDR3L",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 4th Gen Core i7 MQ (soldered on most SKUs — verify, unlike T440p)",
+                                "Nvidia Quadro K1100M / K2100M",
+                                "15.6-inch FHD / 3K (2880x1620) IPS options",
+                                "2.5-inch SATA + M.2 2242 + optical bay caddy",
+                                "170W slim-tip PSU"
+                        ],
+                        "refurb": "4 SODIMM slots, max 32GB DDR3L. W540 has the buttonless clunkpad and no LED indicators; the W541 is the mid-cycle fix with physical buttons restored — always distinguish in listings, buyers know the difference. 3K IPS SKU is the desirable panel.",
+                        "value": "Tier B. W541 3K + 32GB is the budget-CAD listing; W540 units price lower on the clunkpad alone.",
+                        "parts": [
+                                "Keyboards interchange with T540p, T550, W550s.",
+                                "T550-family trackpads fit W540 as the button fix.",
+                                "Optical bay standard 9.5mm caddy."
+                        ],
+                        "firmware": [
+                                "Hardware flash territory for BIOS work.",
+                                "No 1vyrain path (wrong generation)."
+                        ],
+                        "display": [
+                                "3K IPS panels interchange with T540p upgrades — premium pull."
+                        ],
+                        "faults": [
+                                "W540 clunkpad — the model's reputation problem; fix or price accordingly.",
+                                "Quadro K-series thermals — repaste standard.",
+                                "Check whether CPU is soldered on the specific SKU before advertising upgrades."
+                        ],
+                        "os": [
+                                "Strong Linux CAD/compile box; 4 slots at DDR3L prices makes cheap 32GB builds."
+                        ],
+                        "maxram": "32GB DDR3L (4 slots)",
+                        "modularity": 7,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "w530",
+                        "name": "W530 Workstation",
+                        "tags": [
+                                "15.6-inch",
+                                "Socketed",
+                                "Ivy Bridge",
+                                "Tier B"
+                        ],
+                        "specs": [
+                                "Intel 3rd Gen Core, SOCKETED — 3740QM/3840QM swaps standard",
+                                "Nvidia Quadro K1000M / K2000M",
+                                "15.6-inch HD+ / FHD TN",
+                                "2.5-inch SATA III + mSATA + optical bay",
+                                "170W slim-tip? NO — 170W barrel-type PSU"
+                        ],
+                        "refurb": "4 SODIMM slots, max 32GB DDR3 (i7 quad SKUs). The socketed 4-slot Ivy platform: 1vyrain software unlock + quad swap + 32GB = a monster legacy workstation for pennies. Requires the 170W barrel PSU for full performance.",
+                        "value": "Tier B modded. The '32GB DDR3 workstation under £150' listing writes itself.",
+                        "parts": [
+                                "Keyboards interchange with T430, T530, X230 (island) — classic 7-row fits with EC flash.",
+                                "170W barrel PSUs shared with W520.",
+                                "Optical bay caddies standard."
+                        ],
+                        "firmware": [
+                                "1vyrain software BIOS unlock works — whitelist removal + advanced menus with no clip.",
+                                "EC flash for classic keyboard conversions.",
+                                "Coreboot possible via hardware flash."
+                        ],
+                        "display": [
+                                "FHD TN is the ceiling stock; harvest FHD panels from donor units."
+                        ],
+                        "faults": [
+                                "Fan errors at this age — stock FRU fans.",
+                                "Quadro K-series artifact checks under load.",
+                                "Underpowered PSU throttling — bundle the 170W barrel."
+                        ],
+                        "os": [
+                                "Durable Linux compile/VM workstation; 32GB + quad + mSATA boot is still genuinely capable."
+                        ],
+                        "maxram": "32GB DDR3 (4 slots, quad SKUs)",
+                        "modularity": 10,
+                        "libreboot": {
+                                "status": "modern",
+                                "note": "Added in recent Libreboot releases (external hardware flash). Verify your exact board/rev on the libreboot.org hardware list before committing."
+                        }
+                },
+                {
+                        "id": "w520",
+                        "name": "W520 Workstation",
+                        "tags": [
+                                "15.6-inch",
+                                "Socketed",
+                                "Sandy Bridge",
+                                "Tier C"
+                        ],
+                        "specs": [
+                                "Intel 2nd Gen Core, SOCKETED — i7-2760QM/2860QM swaps viable",
+                                "Nvidia Quadro 1000M / 2000M",
+                                "15.6-inch HD+ / FHD TN",
+                                "2.5-inch SATA III + mSATA + optical bay",
+                                "170W barrel PSU required for quad + dGPU"
+                        ],
+                        "refurb": "4 SODIMM slots, max 32GB DDR3 (quad i7 SKUs). The classic 7-row workstation: last W-series with the beloved keyboard. Optimus quirks under Linux are the known friction point — document BIOS graphics settings per build.",
+                        "value": "Tier C, lifted by the 7-row keyboard crowd and cheap 32GB builds.",
+                        "parts": [
+                                "7-row keyboards interchange with T420, T520, X220.",
+                                "170W barrel PSU shared with W530.",
+                                "Optical bay parts conform with T520 spec."
+                        ],
+                        "firmware": [
+                                "Software BIOS mods (same era as T520 patches) clear whitelists without hardware.",
+                                "Coreboot via hardware flash."
+                        ],
+                        "display": [
+                                "FHD TN SKU is the target; also the donor source for T520 FHD upgrades."
+                        ],
+                        "faults": [
+                                "Optimus/discrete switching confusion — set BIOS to discrete-only for Linux builds and note it.",
+                                "Age-standard service: paste, fan, RTC cell.",
+                                "Barrel jack wear on docked units."
+                        ],
+                        "os": [
+                                "Runs modern Linux well in discrete-only mode; a charming heavyweight for stationary use."
+                        ],
+                        "maxram": "32GB DDR3 (4 slots, quad SKUs)",
+                        "modularity": 9,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "w510",
+                        "name": "W510 Workstation",
+                        "tags": [
+                                "15.6-inch",
+                                "Workstation",
+                                "Quad-Core",
+                                "Tier D"
+                        ],
+                        "specs": [
+                                "Intel 1st Gen Core i7 quad (720QM/820QM/920XM)",
+                                "Nvidia Quadro FX 880M",
+                                "15.6-inch HD+ / FHD; rare FHD RGB-LED wide-gamut panel SKU",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "4 SODIMM slots active on quad i7 builds, max 32GB DDR3 — BUT the same low-density 2Rx8 module requirement as the rest of the Tx10 era applies. CRITICAL POWER PREREQUISITE: needs the 135W barrel PSU minimum; underpowered bricks throttle instantly.",
+                        "value": "Tier D generally — EXCEPT the FHD RGB-LED panel SKU, which is a legitimate rarity worth identifying and auctioning.",
+                        "parts": [
+                                "Lower chassis and keyboards map to T510.",
+                                "135W barrel PSUs — keep spares; often missing from lots."
+                        ],
+                        "firmware": [
+                                "SPI programmer required for low-level work."
+                        ],
+                        "display": [
+                                "RGB-LED FHD panel identification on intake is the whole game with this model."
+                        ],
+                        "faults": [
+                                "2Rx8 RAM wall across all four slots — sourcing 8GB low-density sticks is painful, so 16GB (4x4GB 2Rx8) is the practical build.",
+                                "Quadro FX 880M age.",
+                                "Nehalem quad thermals — full service mandatory."
+                        ],
+                        "os": [
+                                "Stationary Linux deployment with legacy driver hooks; a space heater with a keyboard, and price it honestly as one."
+                        ],
+                        "maxram": "32GB theoretical / 16GB practical 2Rx8 (4 slots)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "none",
+                                "note": "No Libreboot port for this platform."
+                        }
+                },
+                {
+                        "id": "w500",
+                        "name": "W500 Workstation",
+                        "tags": [
+                                "15.4-inch",
+                                "Workstation",
+                                "Libreboot",
+                                "Collector"
+                        ],
+                        "specs": [
+                                "Intel Core 2 Duo",
+                                "ATI Mobility FireGL V5700",
+                                "15.4-inch WSXGA+ / WUXGA (1920x1200) panel options",
+                                "2.5-inch SATA II"
+                        ],
+                        "refurb": "2 SODIMM slots, max 8GB DDR3 with the strict low-density 2Rx8 requirement of the T500 generation. The WUXGA 16:10 panel + Libreboot combination is the collector angle — a 1920x1200 blob-free machine.",
+                        "value": "Collector tier for WUXGA + Libreboot builds; parts tier otherwise (T500 donor relationship).",
+                        "parts": [
+                                "Fans, keyboards, and top-cover assemblies shared extensively with T500.",
+                                "WUXGA panels are the premium pull — interchange within the T500/W500 LED-cable family."
+                        ],
+                        "firmware": [
+                                "Full Libreboot compatibility via external programmer + clip — but the FireGL dGPU is dead weight under Libreboot; the machine runs on whatever the flash permits, so pitch it as an iGPU-equivalent build.",
+                                "Keep original dumps per-serial as with all Libreboot stock."
+                        ],
+                        "display": [
+                                "WUXGA identification on intake determines whether this is a collector build or a T500 parts donor."
+                        ],
+                        "faults": [
+                                "2Rx8 wall.",
+                                "FireGL BGA age.",
+                                "CCFL variants — LED WUXGA only for premium listings."
+                        ],
+                        "os": [
+                                "A fascinating large-format blob-free terminal: WUXGA + Libreboot + libre distro is a genuinely unique listing."
+                        ],
+                        "maxram": "8GB DDR3 (2Rx8 only)",
+                        "modularity": 8,
+                        "libreboot": {
+                                "status": "classic",
+                                "note": "Classic official target — FireGL is dead weight post-flash."
+                        }
+                }
+        ]
+};
+
+        let currentSeries = 'T';
+        let allModels = [];
+
+        Object.keys(db).forEach(key => {
+            db[key].forEach(model => allModels.push({...model, series: key}));
+        });
+
+        const isMobile = () => window.matchMedia('(max-width: 899px)').matches;
+
+        /* ---- mobile two-view navigation with hardware-back support ---- */
+        function openDetail() {
+            if (isMobile() && !document.body.classList.contains('detail-open')) {
+                document.body.classList.add('detail-open');
+                try { history.pushState({ tpdbDetail: true }, ''); } catch (e) {}
+            }
+        }
+        function closeDetail() {
+            if (history.state && history.state.tpdbDetail) {
+                history.back(); // popstate handler does the class removal
+            } else {
+                document.body.classList.remove('detail-open');
+            }
+        }
+        window.addEventListener('popstate', () => {
+            document.body.classList.remove('detail-open');
+        });
+
+        function setSeries(series) {
+            currentSeries = series;
+            document.getElementById('search').value = '';
+            document.querySelectorAll('.series-filters button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${series.toLowerCase()}`).classList.add('active');
+            renderList(db[series]);
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search').value.toLowerCase();
+            if (!query) return setSeries(currentSeries);
+
+            document.querySelectorAll('.series-filters button').forEach(b => b.classList.remove('active'));
+            const results = allModels.filter(m =>
+                m.name.toLowerCase().includes(query) ||
+                (m.maxram || '').toLowerCase().includes(query) ||
+                ((m.libreboot && m.libreboot.status !== 'none') ? 'libreboot yes ' + m.libreboot.note : 'libreboot no').toLowerCase().includes(query) ||
+                m.specs.join(' ').toLowerCase().includes(query) ||
+                m.parts.join(' ').toLowerCase().includes(query) ||
+                m.refurb.toLowerCase().includes(query) ||
+                (m.value || '').toLowerCase().includes(query) ||
+                m.tags.join(' ').toLowerCase().includes(query) ||
+                m.firmware.join(' ').toLowerCase().includes(query) ||
+                (m.display || []).join(' ').toLowerCase().includes(query) ||
+                (m.faults || []).join(' ').toLowerCase().includes(query) ||
+                m.os.join(' ').toLowerCase().includes(query)
+            );
+            renderList(results);
+        }
+
+        function renderList(models) {
+            const list = document.getElementById('model-list');
+            list.innerHTML = '';
+
+            const meta = document.createElement('div');
+            meta.className = 'list-meta';
+            meta.textContent = `${models.length} model${models.length === 1 ? '' : 's'}`;
+            list.appendChild(meta);
+
+            models.forEach(model => {
+                const btn = document.createElement('button');
+                btn.className = 'model-btn';
+                btn.innerHTML = `<span>${model.name}</span><span class="sub">${model.tags[0]} <span class="chev">\u203A</span></span>`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderDetails(model);
+                    openDetail();
+                };
+                list.appendChild(btn);
+            });
+        }
+
+        function renderDetails(model) {
+            const tierTag = model.tags[3] ? `<span class="badge b-tier">${model.tags[3]}</span>` : '';
+            const lb = model.libreboot || { status: 'none', note: '' };
+            const lbLabel = lb.status === 'classic' ? 'Yes \u2014 official classic target'
+                          : lb.status === 'modern' ? 'Yes \u2014 recent releases'
+                          : 'No';
+            const modScore = model.modularity || 0;
+            const modSegs = Array.from({length: 10}, (_, i) => `<span class="mod-seg${i < modScore ? ' on' : ''}"></span>`).join('');
+            const statStrip = `
+                <div class="stat-strip">
+                    <div class="stat">
+                        <div class="stat-label">Max RAM</div>
+                        <div class="stat-val">${model.maxram || '\u2014'}</div>
+                    </div>
+                    <div class="stat lb-${lb.status}">
+                        <div class="stat-label">Libreboot</div>
+                        <div class="stat-val">${lbLabel}</div>
+                        <div class="stat-note">${lb.note}</div>
+                    </div>
+                    <div class="stat${modScore >= 8 ? ' mod-hi' : ''}">
+                        <div class="stat-label">Modularity</div>
+                        <div class="stat-val">${modScore}/10</div>
+                        <div class="mod-bar">${modSegs}</div>
+                    </div>
+                </div>`;
+            const html = `
+                <div class="mobile-bar">
+                    <button class="back-btn" onclick="closeDetail()">\u2039 Models</button>
+                    <span class="bar-title">${model.name}</span>
+                </div>
+                <div class="dashboard-header">
+                    <div>
+                        <h2>${model.name}</h2>
+                        <div class="badge-group">
+                            <span class="badge b-cpu">${model.tags[1]}</span>
+                            <span class="badge b-ram">${model.tags[2]}</span>
+                            ${tierTag}
+                        </div>
+                        ${statStrip}
+                    </div>
+                </div>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.hw} Technical Architecture & Constraints</div>
+                            <ul class="tech-list">
+                                ${model.specs.map(s => `<li>${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="alert-box">
+                            <strong>Refurbishment Metrics:</strong> ${model.refurb}
+                        </div>
+                        ${model.value ? `<div class="value-box"><strong>Resale Positioning:</strong> ${model.value}</div>` : ''}
+                    </div>
+
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.fault} Known Faults & Bench Checks</div>
+                            <ul class="tech-list fault-list">
+                                ${(model.faults || []).map(f => `<li>${f}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.parts} Verified Hardware Interchanges</div>
+                            <ul class="tech-list">
+                                ${model.parts.map(p => `<li>${p}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.fw} Low-Level Firmware & BIOS Operations</div>
+                            <ul class="tech-list">
+                                ${model.firmware.map(f => `<li>${f}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.display} Display Grades & Upgrade Paths</div>
+                            <ul class="tech-list">
+                                ${(model.display || []).map(d => `<li>${d}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="card-header">${icons.os} OS Deployment & Homelab Viability</div>
+                            <ul class="tech-list">
+                                ${model.os.map(o => `<li>${o}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const view = document.getElementById('detail-view');
+            view.innerHTML = html;
+            view.scrollTop = 0;
+        }
+
+        setSeries('T');
+
+        /* ---- offline support (works when hosted on GitHub Pages / any HTTPS origin) ---- */
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>
