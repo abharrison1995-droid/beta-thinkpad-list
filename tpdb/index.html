@@ -90,15 +90,27 @@
 
         .model-btn {
             background: transparent; color: var(--text-main); border: none; border-bottom: 1px solid var(--border-muted);
-            padding: 1rem 1.25rem; text-align: left; cursor: pointer; font-size: 0.95rem; font-weight: 500;
-            transition: background 0.1s; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
-            min-height: 52px; /* comfortable touch target */
+            padding: 0.75rem 1.1rem; text-align: left; cursor: pointer; font-size: 0.95rem; font-weight: 500;
+            transition: background 0.1s; display: flex; align-items: center; gap: 0.75rem;
+            min-height: 56px;
         }
         .model-btn:active { background-color: var(--bg-card); }
         .model-btn:hover { background-color: var(--bg-card); }
-        .model-btn.active { background-color: var(--bg-card); border-left: 4px solid var(--tp-red); color: #fff; font-weight: bold; }
+        .model-btn.active { background-color: var(--bg-card); border-left: 3px solid var(--tp-red); color: #fff; font-weight: 600; padding-left: calc(1.1rem - 3px); }
+        .model-btn .meta { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+        .model-btn .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .model-btn .sub { color: var(--text-muted); font-size: 0.78rem; font-weight: 500; white-space: nowrap; }
         .model-btn .chev { display: none; color: var(--text-muted); font-size: 1.2rem; }
+        .model-thumb {
+            width: 52px; height: 39px; flex-shrink: 0; border-radius: 5px;
+            border: 1px solid var(--border-muted); background: var(--bg-base);
+            overflow: hidden; display: grid; place-items: center; position: relative;
+        }
+        .model-thumb > * { grid-area: 1 / 1; }
+        .model-thumb img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .model-thumb.has-image img { display: block; }
+        .model-thumb.has-image .ph { display: none; }
+        .model-thumb .ph { width: 70%; height: auto; opacity: 0.35; fill: var(--text-muted); }
 
         .content-area {
             flex: 1; padding: 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -112,56 +124,85 @@
         .mobile-bar { display: none; }
 
         /* ============ DETAIL ============ */
-        .dashboard-header { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-muted); padding-bottom: 1rem; }
-        .dashboard-header h2 { font-size: 2.1rem; color: #fff; letter-spacing: -1px; }
+        .model-hero {
+            display: grid; grid-template-columns: minmax(180px, 300px) 1fr; gap: 1.5rem;
+            align-items: start; margin-bottom: 1.5rem; padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-muted);
+        }
+        .model-photo {
+            aspect-ratio: 4 / 3; border-radius: 10px; border: 1px solid var(--border-muted);
+            background:
+                linear-gradient(145deg, rgba(218, 41, 28, 0.06), transparent 40%),
+                var(--bg-surface);
+            overflow: hidden; position: relative; display: grid; place-items: center;
+        }
+        .model-photo img {
+            width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0;
+        }
+        .model-photo.has-image img { display: block; }
+        .model-photo .photo-placeholder {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 0.55rem; color: var(--text-muted); text-align: center; padding: 1rem;
+            width: 100%; height: 100%;
+        }
+        .model-photo .photo-placeholder svg { width: 56%; max-width: 140px; opacity: 0.45; fill: var(--text-muted); }
+        .model-photo .photo-placeholder span {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.9px; font-weight: 600;
+        }
+        .model-photo.has-image .photo-placeholder { display: none; }
 
-        .badge-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
-        .badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dashboard-header { min-width: 0; }
+        .dashboard-header h2 { font-size: 2rem; color: #fff; letter-spacing: -0.8px; font-weight: 700; line-height: 1.15; }
+        .dashboard-header .size-line { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.35rem; }
+
+        .badge-group { display: flex; gap: 0.4rem; margin-top: 0.75rem; flex-wrap: wrap; }
+        .badge { padding: 0.22rem 0.65rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.45px; }
         .b-cpu { background: var(--badge-blue); color: var(--badge-blue-text); border: 1px solid rgba(56, 139, 253, 0.4); }
         .b-ram { background: var(--badge-orange); color: var(--badge-orange-text); border: 1px solid rgba(210, 153, 34, 0.4); }
         .b-tier { background: var(--badge-green); color: var(--badge-green-text); border: 1px solid rgba(63, 185, 80, 0.4); }
 
         /* Stat strip: Max RAM / Libreboot / Modularity */
-        .stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 0.75rem; margin-top: 1rem; }
-        .stat { background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 8px; padding: 0.65rem 0.9rem; }
+        .stat-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; margin-top: 1rem; }
+        .stat { background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 8px; padding: 0.6rem 0.8rem; }
         .stat .stat-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
-        .stat .stat-val { font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 3px; line-height: 1.3; }
-        .stat .stat-note { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+        .stat .stat-val { font-weight: 700; color: #fff; font-size: 0.92rem; margin-top: 3px; line-height: 1.3; }
+        .stat .stat-note { font-size: 0.74rem; color: var(--text-muted); margin-top: 4px; line-height: 1.35; }
         .lb-classic .stat-val { color: var(--badge-green-text); }
         .lb-modern .stat-val { color: var(--badge-blue-text); }
         .lb-none .stat-val { color: var(--text-muted); }
         .mod-bar { display: flex; gap: 3px; margin-top: 7px; }
-        .mod-seg { height: 7px; flex: 1; border-radius: 2px; background: var(--border-muted); }
+        .mod-seg { height: 6px; flex: 1; border-radius: 2px; background: var(--border-muted); }
         .mod-seg.on { background: var(--tp-red); }
         .mod-hi .mod-seg.on { background: var(--badge-green-text); }
 
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 1.25rem; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 1rem; }
 
         .card {
             background: var(--bg-surface); border: 1px solid var(--border-muted); border-radius: 10px;
-            padding: 1.25rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.1rem 1.15rem;
             display: flex; flex-direction: column; justify-content: space-between;
         }
         .card-content { flex-grow: 1; }
         .card-header {
-            display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; color: #fff;
-            font-size: 1.05rem; font-weight: 600; border-bottom: 1px solid var(--border-muted); padding-bottom: 0.5rem;
+            display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.85rem; color: #fff;
+            font-size: 0.95rem; font-weight: 600; border-bottom: 1px solid var(--border-muted); padding-bottom: 0.5rem;
         }
-        .card-header svg { fill: var(--text-muted); width: 20px; height: 20px; flex-shrink: 0; }
+        .card-header svg { fill: var(--text-muted); width: 18px; height: 18px; flex-shrink: 0; }
 
         ul.tech-list { list-style: none; }
-        ul.tech-list li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; font-size: 0.92rem; color: var(--text-main); line-height: 1.45; }
-        ul.tech-list li::before { content: "\203A"; color: var(--tp-red); position: absolute; left: 0; font-size: 1.2rem; font-weight: bold; top: -2px; }
-        ul.fault-list li::before { content: "\26A0"; font-size: 0.85rem; top: 1px; color: var(--badge-orange-text); }
+        ul.tech-list li { margin-bottom: 0.65rem; padding-left: 1.25rem; position: relative; font-size: 0.9rem; color: var(--text-main); line-height: 1.45; }
+        ul.tech-list li:last-child { margin-bottom: 0; }
+        ul.tech-list li::before { content: "\203A"; color: var(--tp-red); position: absolute; left: 0; font-size: 1.15rem; font-weight: bold; top: -2px; }
+        ul.fault-list li::before { content: "\26A0"; font-size: 0.8rem; top: 1px; color: var(--badge-orange-text); }
 
         .alert-box {
-            background: rgba(218, 41, 28, 0.08); border: 1px solid rgba(218, 41, 28, 0.15); border-left: 4px solid var(--tp-red);
-            padding: 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; font-size: 0.88rem; line-height: 1.5;
+            background: rgba(218, 41, 28, 0.08); border: 1px solid rgba(218, 41, 28, 0.15); border-left: 3px solid var(--tp-red);
+            padding: 0.85rem 0.95rem; border-radius: 0 6px 6px 0; margin-top: 0.9rem; font-size: 0.86rem; line-height: 1.5;
         }
         .alert-box strong { color: #fff; }
         .value-box {
-            background: rgba(63, 185, 80, 0.06); border: 1px solid rgba(63, 185, 80, 0.15); border-left: 4px solid var(--badge-green-text);
-            padding: 1rem; border-radius: 0 6px 6px 0; margin-top: 1rem; font-size: 0.88rem; line-height: 1.5;
+            background: rgba(63, 185, 80, 0.06); border: 1px solid rgba(63, 185, 80, 0.15); border-left: 3px solid var(--badge-green-text);
+            padding: 0.85rem 0.95rem; border-radius: 0 6px 6px 0; margin-top: 0.75rem; font-size: 0.86rem; line-height: 1.5;
         }
         .value-box strong { color: #fff; }
 
@@ -177,13 +218,15 @@
             .logo { font-size: 1.2rem; }
             .search-bar { width: 300px; }
             .content-area { padding: 2rem; }
-            .dashboard-header h2 { font-size: 2.3rem; }
+            .dashboard-header h2 { font-size: 2.2rem; }
+            .model-hero { grid-template-columns: minmax(220px, 340px) 1fr; gap: 1.75rem; }
         }
 
         /* ============ MOBILE (< 900px): two-view navigation ============ */
         @media (max-width: 899px) {
             aside { width: 100%; border-right: none; }
-            .model-btn { padding: 1rem 1.25rem; }
+            .model-btn { padding: 0.7rem 1rem; }
+            .model-btn.active { padding-left: calc(1rem - 3px); }
             .model-btn .chev { display: block; }
 
             .content-area {
@@ -211,9 +254,11 @@
             .back-btn:active { background: var(--border-muted); }
             .mobile-bar .bar-title { font-weight: 700; color: #fff; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-            .dashboard-header { margin-bottom: 1.25rem; }
-            .dashboard-header h2 { font-size: 1.7rem; }
-            .card { padding: 1.1rem; }
+            .model-hero { grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+            .model-photo { max-width: 420px; }
+            .dashboard-header h2 { font-size: 1.65rem; }
+            .stat-strip { grid-template-columns: 1fr; }
+            .card { padding: 1rem; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -240,7 +285,7 @@
     <main>
         <aside id="model-list"></aside>
         <section class="content-area" id="detail-view">
-            <div class="empty-state">Select a model or use search parameters to initiate hardware breakdown.</div>
+            <div class="empty-state">Select a ThinkPad from the list to view hardware notes and photos.</div>
         </section>
     </main>
 
@@ -251,14 +296,42 @@
             parts: `<svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>`,
             os: `<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>`,
             fault: `<svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>`,
-            display: `<svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>`
+            display: `<svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>`,
+            laptop: `<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 8h48a3 3 0 0 1 3 3v24a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3zm2 4v20h44V12H10zm-6 28h56v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2z"/><rect x="14" y="16" width="36" height="12" rx="1" opacity="0.35"/></svg>`
         };
+
+        function imagePath(model) {
+            return model.image || `./images/${model.id}.jpg`;
+        }
+
+        function thumbMarkup(model) {
+            const src = imagePath(model);
+            return `<span class="model-thumb" aria-hidden="true">
+                ${icons.laptop.replace('<svg', '<svg class="ph"')}
+                <img src="${src}" alt="" loading="lazy"
+                     onload="this.parentElement.classList.add('has-image')"
+                     onerror="this.remove()">
+            </span>`;
+        }
+
+        function photoMarkup(model) {
+            const src = imagePath(model);
+            return `<div class="model-photo" id="photo-${model.id}">
+                <div class="photo-placeholder">
+                    ${icons.laptop}
+                    <span>Add images/${model.id}.jpg</span>
+                </div>
+                <img src="${src}" alt="${model.name}" loading="eager"
+                     onload="this.parentElement.classList.add('has-image')"
+                     onerror="this.remove()">
+            </div>`;
+        }
 
         const db = {
         "T": [
                 {
                         "id": "t580",
-                        "name": "T580",
+                        "image": "./images/t580.jpg",                        "name": "T580",
                         "tags": [
                                 "15.6-inch",
                                 "Quad-Core",
@@ -308,7 +381,7 @@
                 },
                 {
                         "id": "t480",
-                        "name": "T480",
+                        "image": "./images/t480.jpg",                        "name": "T480",
                         "tags": [
                                 "14-inch",
                                 "Quad-Core",
@@ -358,7 +431,7 @@
                 },
                 {
                         "id": "t570",
-                        "name": "T570",
+                        "image": "./images/t570.jpg",                        "name": "T570",
                         "tags": [
                                 "15.6-inch",
                                 "Dual-Core",
@@ -403,7 +476,7 @@
                 },
                 {
                         "id": "t470",
-                        "name": "T470",
+                        "image": "./images/t470.jpg",                        "name": "T470",
                         "tags": [
                                 "14-inch",
                                 "Dual-Core",
@@ -447,7 +520,7 @@
                 },
                 {
                         "id": "t560",
-                        "name": "T560",
+                        "image": "./images/t560.jpg",                        "name": "T560",
                         "tags": [
                                 "15.6-inch",
                                 "Dual-Core",
@@ -487,7 +560,7 @@
                 },
                 {
                         "id": "t460",
-                        "name": "T460",
+                        "image": "./images/t460.jpg",                        "name": "T460",
                         "tags": [
                                 "14-inch",
                                 "Dual-Core",
@@ -527,7 +600,7 @@
                 },
                 {
                         "id": "t550",
-                        "name": "T550",
+                        "image": "./images/t550.jpg",                        "name": "T550",
                         "tags": [
                                 "15.6-inch",
                                 "Dual-Core",
@@ -567,7 +640,7 @@
                 },
                 {
                         "id": "t450",
-                        "name": "T450",
+                        "image": "./images/t450.jpg",                        "name": "T450",
                         "tags": [
                                 "14-inch",
                                 "Dual-Core",
@@ -608,7 +681,7 @@
                 },
                 {
                         "id": "t540p",
-                        "name": "T540p",
+                        "image": "./images/t540p.jpg",                        "name": "T540p",
                         "tags": [
                                 "15.6-inch",
                                 "Socketed CPU",
@@ -653,7 +726,7 @@
                 },
                 {
                         "id": "t440p",
-                        "name": "T440p",
+                        "image": "./images/t440p.jpg",                        "name": "T440p",
                         "tags": [
                                 "14-inch",
                                 "Socketed CPU",
@@ -700,7 +773,7 @@
                 },
                 {
                         "id": "t440",
-                        "name": "T440",
+                        "image": "./images/t440.jpg",                        "name": "T440",
                         "tags": [
                                 "14-inch",
                                 "Soldered CPU",
@@ -741,7 +814,7 @@
                 },
                 {
                         "id": "t530",
-                        "name": "T530",
+                        "image": "./images/t530.jpg",                        "name": "T530",
                         "tags": [
                                 "15.6-inch",
                                 "Socketed",
@@ -786,7 +859,7 @@
                 },
                 {
                         "id": "t430",
-                        "name": "T430",
+                        "image": "./images/t430.jpg",                        "name": "T430",
                         "tags": [
                                 "14-inch",
                                 "Socketed",
@@ -831,7 +904,7 @@
                 },
                 {
                         "id": "t520",
-                        "name": "T520",
+                        "image": "./images/t520.jpg",                        "name": "T520",
                         "tags": [
                                 "15.6-inch",
                                 "Socketed",
@@ -873,7 +946,7 @@
                 },
                 {
                         "id": "t420",
-                        "name": "T420",
+                        "image": "./images/t420.jpg",                        "name": "T420",
                         "tags": [
                                 "14-inch",
                                 "Socketed",
@@ -917,7 +990,7 @@
                 },
                 {
                         "id": "t510",
-                        "name": "T510",
+                        "image": "./images/t510.jpg",                        "name": "T510",
                         "tags": [
                                 "15.6-inch",
                                 "1st Gen Core",
@@ -959,7 +1032,7 @@
                 },
                 {
                         "id": "t410",
-                        "name": "T410",
+                        "image": "./images/t410.jpg",                        "name": "T410",
                         "tags": [
                                 "14.1-inch",
                                 "16:10",
@@ -1001,7 +1074,7 @@
                 },
                 {
                         "id": "t500",
-                        "name": "T500",
+                        "image": "./images/t500.jpg",                        "name": "T500",
                         "tags": [
                                 "15.4-inch",
                                 "Core 2 Duo",
@@ -1044,7 +1117,7 @@
                 },
                 {
                         "id": "t400",
-                        "name": "T400",
+                        "image": "./images/t400.jpg",                        "name": "T400",
                         "tags": [
                                 "14.1-inch",
                                 "Core 2 Duo",
@@ -1087,7 +1160,7 @@
                 },
                 {
                         "id": "t61",
-                        "name": "T61 / T61p",
+                        "image": "./images/t61.jpg",                        "name": "T61 / T61p",
                         "tags": [
                                 "Modular",
                                 "Core 2 Duo",
@@ -1131,7 +1204,7 @@
                 },
                 {
                         "id": "t60",
-                        "name": "T60",
+                        "image": "./images/t60.jpg",                        "name": "T60",
                         "tags": [
                                 "4:3 Aspect",
                                 "Legacy",
@@ -1176,7 +1249,7 @@
         "X": [
                 {
                         "id": "x280",
-                        "name": "X280",
+                        "image": "./images/x280.jpg",                        "name": "X280",
                         "tags": [
                                 "12.5-inch",
                                 "Soldered RAM",
@@ -1220,7 +1293,7 @@
                 },
                 {
                         "id": "x270",
-                        "name": "X270",
+                        "image": "./images/x270.jpg",                        "name": "X270",
                         "tags": [
                                 "12.5-inch",
                                 "PowerBridge",
@@ -1263,7 +1336,7 @@
                 },
                 {
                         "id": "x260",
-                        "name": "X260",
+                        "image": "./images/x260.jpg",                        "name": "X260",
                         "tags": [
                                 "12.5-inch",
                                 "DDR4",
@@ -1303,7 +1376,7 @@
                 },
                 {
                         "id": "x250",
-                        "name": "X250",
+                        "image": "./images/x250.jpg",                        "name": "X250",
                         "tags": [
                                 "12.5-inch",
                                 "DDR3L",
@@ -1344,7 +1417,7 @@
                 },
                 {
                         "id": "x240",
-                        "name": "X240",
+                        "image": "./images/x240.jpg",                        "name": "X240",
                         "tags": [
                                 "12.5-inch",
                                 "Clunkpad",
@@ -1386,7 +1459,7 @@
                 },
                 {
                         "id": "x230",
-                        "name": "X230 / X230T",
+                        "image": "./images/x230.jpg",                        "name": "X230 / X230T",
                         "tags": [
                                 "12.5-inch",
                                 "Ivy Bridge",
@@ -1433,7 +1506,7 @@
                 },
                 {
                         "id": "x220",
-                        "name": "X220",
+                        "image": "./images/x220.jpg",                        "name": "X220",
                         "tags": [
                                 "12.5-inch",
                                 "7-Row",
@@ -1476,7 +1549,7 @@
                 },
                 {
                         "id": "x201",
-                        "name": "X201",
+                        "image": "./images/x201.jpg",                        "name": "X201",
                         "tags": [
                                 "12.1-inch",
                                 "Nehalem",
@@ -1517,7 +1590,7 @@
                 },
                 {
                         "id": "x200",
-                        "name": "X200",
+                        "image": "./images/x200.jpg",                        "name": "X200",
                         "tags": [
                                 "12.1-inch",
                                 "16:10",
@@ -1559,7 +1632,7 @@
                 },
                 {
                         "id": "x61",
-                        "name": "X61 / X61s",
+                        "image": "./images/x61.jpg",                        "name": "X61 / X61s",
                         "tags": [
                                 "4:3 Aspect",
                                 "Classic",
@@ -1600,7 +1673,7 @@
                 },
                 {
                         "id": "x60",
-                        "name": "X60 / X60s",
+                        "image": "./images/x60.jpg",                        "name": "X60 / X60s",
                         "tags": [
                                 "4:3 Aspect",
                                 "Blob-Free",
@@ -1645,7 +1718,7 @@
         "W": [
                 {
                         "id": "p51",
-                        "name": "P51 Workstation",
+                        "image": "./images/p51.jpg",                        "name": "P51 Workstation",
                         "tags": [
                                 "15.6-inch",
                                 "Quad-Core",
@@ -1690,7 +1763,7 @@
                 },
                 {
                         "id": "p50",
-                        "name": "P50 Workstation",
+                        "image": "./images/p50.jpg",                        "name": "P50 Workstation",
                         "tags": [
                                 "15.6-inch",
                                 "Quad-Core",
@@ -1735,7 +1808,7 @@
                 },
                 {
                         "id": "w541",
-                        "name": "W540 / W541",
+                        "image": "./images/w541.jpg",                        "name": "W540 / W541",
                         "tags": [
                                 "15.6-inch",
                                 "Quad-Core",
@@ -1780,7 +1853,7 @@
                 },
                 {
                         "id": "w530",
-                        "name": "W530 Workstation",
+                        "image": "./images/w530.jpg",                        "name": "W530 Workstation",
                         "tags": [
                                 "15.6-inch",
                                 "Socketed",
@@ -1826,7 +1899,7 @@
                 },
                 {
                         "id": "w520",
-                        "name": "W520 Workstation",
+                        "image": "./images/w520.jpg",                        "name": "W520 Workstation",
                         "tags": [
                                 "15.6-inch",
                                 "Socketed",
@@ -1871,7 +1944,7 @@
                 },
                 {
                         "id": "w510",
-                        "name": "W510 Workstation",
+                        "image": "./images/w510.jpg",                        "name": "W510 Workstation",
                         "tags": [
                                 "15.6-inch",
                                 "Workstation",
@@ -1913,7 +1986,7 @@
                 },
                 {
                         "id": "w500",
-                        "name": "W500 Workstation",
+                        "image": "./images/w500.jpg",                        "name": "W500 Workstation",
                         "tags": [
                                 "15.4-inch",
                                 "Workstation",
@@ -2026,7 +2099,7 @@
             models.forEach(model => {
                 const btn = document.createElement('button');
                 btn.className = 'model-btn';
-                btn.innerHTML = `<span>${model.name}</span><span class="sub">${model.tags[0]} <span class="chev">\u203A</span></span>`;
+                btn.innerHTML = `${thumbMarkup(model)}<span class="meta"><span class="name">${model.name}</span><span class="sub">${model.tags[0]} <span class="chev">\u203A</span></span></span>`;
                 btn.onclick = () => {
                     document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
@@ -2067,9 +2140,11 @@
                     <button class="back-btn" onclick="closeDetail()">\u2039 Models</button>
                     <span class="bar-title">${model.name}</span>
                 </div>
-                <div class="dashboard-header">
-                    <div>
+                <div class="model-hero">
+                    ${photoMarkup(model)}
+                    <div class="dashboard-header">
                         <h2>${model.name}</h2>
+                        <div class="size-line">${model.tags[0]}</div>
                         <div class="badge-group">
                             <span class="badge b-cpu">${model.tags[1]}</span>
                             <span class="badge b-ram">${model.tags[2]}</span>
