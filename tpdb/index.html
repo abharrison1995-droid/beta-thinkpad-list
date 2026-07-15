@@ -134,15 +134,19 @@
         }
         .image-dropdown-toggle {
             width: 100%; display: flex; align-items: center; justify-content: space-between;
-            gap: 0.75rem; padding: 0.75rem 1rem; background: transparent; border: none;
-            color: #fff; font-size: 0.92rem; font-weight: 600; cursor: pointer; text-align: left;
-            min-height: 48px;
+            gap: 0.75rem; padding: 0.8rem 1rem; background: rgba(218, 41, 28, 0.08); border: none;
+            color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-align: left;
+            min-height: 52px;
         }
-        .image-dropdown-toggle:hover { background: rgba(255, 255, 255, 0.03); }
+        .image-dropdown-toggle:hover { background: rgba(218, 41, 28, 0.12); }
         .image-dropdown-toggle:active { background: var(--bg-card); }
+        .image-dropdown-toggle .toggle-left { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+        .image-dropdown-toggle .toggle-hint {
+            font-size: 0.72rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.2px;
+        }
         .image-dropdown-toggle .chev {
-            color: var(--text-muted); font-size: 1.05rem; transition: transform 0.18s ease;
-            line-height: 1;
+            color: var(--text-muted); font-size: 1.15rem; transition: transform 0.18s ease;
+            line-height: 1; flex-shrink: 0;
         }
         .image-dropdown.open .image-dropdown-toggle .chev { transform: rotate(90deg); }
         .image-dropdown-panel {
@@ -158,7 +162,8 @@
             overflow: hidden; position: relative; display: grid; place-items: center;
         }
         .model-photo img {
-            width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0;
+            width: 100%; height: 100%; object-fit: contain; background: #0a0d12;
+            display: none; position: absolute; inset: 0;
         }
         .model-photo.has-image img { display: block; }
         .model-photo .photo-placeholder {
@@ -322,31 +327,58 @@
             laptop: `<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 8h48a3 3 0 0 1 3 3v24a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3zm2 4v20h44V12H10zm-6 28h56v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2z"/><rect x="14" y="16" width="36" height="12" rx="1" opacity="0.35"/></svg>`
         };
 
+        const IMAGE_VER = '6';
+        const KNOWN_PHOTOS = new Set(['t420', 'x200', 'x201', 'x220', 'x230']);
+
         function imagePath(model) {
-            return model.image || `./images/${model.id}.jpg`;
+            const base = model.image || `./images/${model.id}.jpg`;
+            const sep = base.includes('?') ? '&' : '?';
+            return `${base}${sep}v=${IMAGE_VER}`;
+        }
+
+        function markImageLoaded(img) {
+            const wrap = img.parentElement;
+            if (wrap) wrap.classList.add('has-image');
+            const dropdown = img.closest('.image-dropdown');
+            if (dropdown) {
+                dropdown.classList.add('has-photo');
+                const hint = dropdown.querySelector('.toggle-hint');
+                if (hint) hint.textContent = 'Tap to show / hide';
+            }
         }
 
         function thumbMarkup(model) {
             const src = imagePath(model);
             return `<span class="model-thumb" aria-hidden="true">
                 ${icons.laptop.replace('<svg', '<svg class="ph"')}
-                <img src="${src}" alt="" loading="lazy"
-                     onload="this.parentElement.classList.add('has-image')"
+                <img src="${src}" alt="" loading="lazy" decoding="async"
+                     onload="markImageLoaded(this)"
                      onerror="this.remove()">
             </span>`;
         }
 
         function photoMarkup(model) {
             const src = imagePath(model);
+            const hint = KNOWN_PHOTOS.has(model.id)
+                ? 'Loading photo\u2026'
+                : `No photo yet \u2014 add images/${model.id}.jpg`;
             return `<div class="model-photo" id="photo-${model.id}">
                 <div class="photo-placeholder">
                     ${icons.laptop}
-                    <span>Add images/${model.id}.jpg</span>
+                    <span>${hint}</span>
                 </div>
-                <img src="${src}" alt="${model.name}" loading="lazy"
-                     onload="this.parentElement.classList.add('has-image')"
-                     onerror="this.remove()">
+                <img data-src="${src}" alt="${model.name}" decoding="async"
+                     onload="markImageLoaded(this)"
+                     onerror="photoLoadError(this)">
             </div>`;
+        }
+
+        function photoLoadError(img) {
+            const wrap = img.parentElement;
+            img.remove();
+            if (!wrap) return;
+            const span = wrap.querySelector('.photo-placeholder span');
+            if (span) span.textContent = 'No photo for this model yet';
         }
 
         function toggleModelImage(btn) {
@@ -354,6 +386,12 @@
             if (!dropdown) return;
             const open = dropdown.classList.toggle('open');
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) {
+                const img = dropdown.querySelector('.model-photo img[data-src]');
+                if (img && !img.getAttribute('src')) {
+                    img.src = img.getAttribute('data-src');
+                }
+            }
         }
 
         const db = {
@@ -2170,11 +2208,14 @@
                     <span class="bar-title">${model.name}</span>
                 </div>
                 <div class="model-hero">
-                    <div class="image-dropdown" id="image-dropdown-${model.id}">
+                    <div class="image-dropdown${KNOWN_PHOTOS.has(model.id) ? ' has-photo' : ''}" id="image-dropdown-${model.id}">
                         <button type="button" class="image-dropdown-toggle"
                                 aria-expanded="false" aria-controls="image-panel-${model.id}"
                                 onclick="toggleModelImage(this)">
-                            <span>Model Image</span>
+                            <span class="toggle-left">
+                                <span>Model Image</span>
+                                <span class="toggle-hint">${KNOWN_PHOTOS.has(model.id) ? 'Tap to show / hide' : 'No photo uploaded yet'}</span>
+                            </span>
                             <span class="chev" aria-hidden="true">\u203A</span>
                         </button>
                         <div class="image-dropdown-panel" id="image-panel-${model.id}">
@@ -2263,7 +2304,9 @@
         /* ---- offline support (works when hosted on GitHub Pages / any HTTPS origin) ---- */
         if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(() => {});
+                navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+                    .then(reg => reg.update())
+                    .catch(() => {});
             });
         }
     </script>
